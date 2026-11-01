@@ -107,15 +107,10 @@ def layout(**_):
                        hauteur=320, controles=bascule("s03-vue", list(VUES),
                                                       "Vitesse autorisée", "Critère")),
         ]),
-        html.Div(className="grille-2-1", children=[
-            chart_card("s03-matrice", "Route × lumière : où une victime est le plus souvent tuée",
-                       "Tués pour 100 victimes, par type de route et conditions de lumière.",
-                       da.SOURCE_BAAC, "létalité = tués / victimes × 100 ; cases sous 30 "
-                       "victimes grisées", hauteur=360),
-            chart_card("s03-jauge", "Les tués hors agglomération",
-                       "Part des tués dont l'accident a eu lieu hors agglomération.",
-                       da.SOURCE_BAAC, "tués hors agglomération / total des tués", hauteur=300),
-        ]),
+        chart_card("s03-matrice", "Route × lumière : où une victime est le plus souvent tuée",
+                   "Tués pour 100 victimes, par type de route et conditions de lumière.",
+                   da.SOURCE_BAAC, "létalité = tués / victimes × 100 ; cases sous 30 "
+                   "victimes grisées", hauteur=360),
         chart_card("s03-sankey", "Des modes de déplacement à la gravité",
                    "Flux des victimes : mode de déplacement, puis lieu de l'accident, puis "
                    "gravité.", da.SOURCE_BAAC, "épaisseur = nombre de victimes ; couleur des "
@@ -262,10 +257,9 @@ LUM_COURT = {"Jour": "Jour", "Aube ou crépuscule": "Aube, crépuscule",
 
 @callback(Output(graph_id("s03-matrice"), "figure"), Output("s03-matrice-puces", "children"),
           Output("s03-matrice-titre", "children"),
-          Output(graph_id("s03-jauge"), "figure"), Output("s03-jauge-puces", "children"),
           Output(graph_id("s03-annees"), "figure"), Output("s03-annees-titre", "children"),
           Output("s03-annees-puces", "children"), *ENTREES)
-def matrice_jauge_annees(filtres, scheme):
+def matrice_et_annees(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
     puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
     # Matrice route × lumière
@@ -293,13 +287,6 @@ def matrice_jauge_annees(filtres, scheme):
                if not masque[i][j]]
         v, r, lu = max(vis)
         titre_m = (f"{r}, {LUM_COURT[lu].lower()} : {fmt_number(v, 1)} tués pour 100 victimes")
-    # Jauge : part des tués hors agglomération
-    usa = da.filtre_table("s02_gravite", periode, dep).groupby("agg_lib")["tues"].sum()
-    if usa.sum() < SEUIL:
-        fig_j = F.message_figure("Moins de 30 tués sur ce périmètre", scheme)
-    else:
-        fig_j = F.anneau_jauge(usa.get("Hors agglomération", 0) / usa.sum() * 100,
-                               "des tués, hors agglomération", scheme)
     # Barres 100 % par année
     g = da.filtre_table("s02_gravite", dep=dep, toutes_annees=True).pivot_table(
         index="annee", columns="agg_lib", values="tues", aggfunc="sum").reindex(C.ANNEES).fillna(0)
@@ -321,7 +308,7 @@ def matrice_jauge_annees(filtres, scheme):
         titre_a = (f"Hors agglomération, {fmt_pct(lo, 0)} à {fmt_pct(hi, 0)} des tués selon "
                    "l'année")
     p_toutes = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
-    return fig_m, puces, titre_m, fig_j, puces, fig_a, titre_a, p_toutes
+    return fig_m, puces, titre_m, fig_a, titre_a, p_toutes
 
 
 MODES_SANKEY = {"Voiture": ["Voiture"], "2RM": ["2RM"], "Piéton": ["Piéton"],

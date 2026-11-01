@@ -85,14 +85,17 @@ def bande_usagers(titre: str, sous_titre: str, items: list[tuple[str, str, str, 
 
 
 def scene_nav(precedente: tuple[str, str] | None, suivante: tuple[str, str] | None):
-    """(libellé, href) pour chaque bouton."""
-    return html.Nav(className="scene-nav", **{"aria-label": "Navigation entre scènes"},
-                    children=[
+    """(libellé, href) par bouton ; un pont narratif (scenes.PONTS) précède le « suivant »."""
+    from app.scenes import PONTS
+    pont = PONTS.get(suivante[1]) if suivante else None
+    boutons = html.Div(className="scene-nav-row", children=[
         lien_bouton(f"Scène précédente · {precedente[0]}", precedente[1], "btn-precedent",
                     icone_g="tabler:arrow-left") if precedente else html.Span(),
         lien_bouton(f"Scène suivante · {suivante[0]}", suivante[1], "btn-suivant",
                     icone_d="tabler:arrow-right") if suivante else html.Span(),
     ])
+    return html.Nav(className="scene-nav", **{"aria-label": "Navigation entre scènes"}, children=[
+        html.P(pont, className="scene-pont") if pont else None, boutons])
 
 
 def bascule_id(nom: str) -> dict:

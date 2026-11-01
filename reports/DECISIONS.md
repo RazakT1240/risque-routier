@@ -90,3 +90,8 @@ Format : décision — justification (une ligne).
 - **Échelle séquentielle ambre** : auparavant elle finissait sur un rouge proche du rouge d'alerte, ce qui
   brouillait G10 (heatmap « valeur haute » vs « ce que le titre désigne »). Passée en ambre/bronze de la
   marque : le rouge d'alerte redevient unique et la marque entre dans les graphiques.
+
+## Allègement du récit (01/11/2026)
+- **Scène « Le paradoxe » dégraissée** : le donut « 68 % des tués hors agglomération » répétait à l'identique le KPI du haut (qui porte en plus la variation, la sparkline et le détail par route). Retiré ; la heatmap route × lumière passe en pleine largeur. Les autres graphiques portent chacun une information distincte et sont conservés.
+- **Ponts narratifs** (`app/scenes.py` PONTS) : une phrase de liaison relie chaque scène à la suivante, au-dessus du bouton « suivant » (ex. « On sait où le risque est le plus grave. Reste à savoir qui le subit. »). Tension entretenue d'une scène à l'autre.
+- **Bouton flottant de l'assistant** : dégagé du bas de scène (marge) pour ne plus chevaucher le bouton « Scène suivante » (défaut d'accessibilité corrigé).

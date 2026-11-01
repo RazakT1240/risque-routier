@@ -12,6 +12,18 @@ SCENES = [
 ]
 PAR_CHEMIN = {s["path"]: s for s in SCENES}
 
+# Ponts narratifs : phrase de liaison affichée au-dessus du bouton « suivant »,
+# indexée par le chemin de la scène de DESTINATION (le « et maintenant ? »).
+PONTS = {
+    "/vue-ensemble": "Commençons par l'ampleur : combien de victimes, et où en est la tendance ?",
+    "/paradoxe": "Mais ces victimes baissent-elles partout de la même façon ? Pas du tout.",
+    "/qui": "On sait où le risque est le plus grave. Reste à savoir qui le subit.",
+    "/ou-quand": "Après le « qui », le « où » précis : quels départements, quels moments ?",
+    "/evolution": "Ce tableau est-il figé ? Certains usages, eux, explosent.",
+    "/simulateur": "Et pour un profil donné, qu'est-ce qui pèse le plus ? À vous d'essayer.",
+    "/methode": "D'où viennent tous ces chiffres ? Tout se vérifie.",
+}
+
 
 def voisines(num: int):
     """(précédente, suivante) sous forme (nom, chemin) ou None."""
