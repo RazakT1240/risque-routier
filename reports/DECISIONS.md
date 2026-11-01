@@ -18,9 +18,18 @@ Format : décision — justification (une ligne).
 - Simulateur : le « profil moyen » est la moyenne du prédicteur linéaire sur l'échantillon (x̄·β) ; rapport de cotes = exp(η − η̄).
 - Convention G6 : chaque `taux_x` est accompagné de `eff_x` ; un taux est masqué si `eff_x < SEUIL_EFFECTIF` (pour les taux de population, l'effectif est le numérateur ; pour la létalité, ce sont les victimes).
 - Modèles JSON écrits dans `data/processed/models/` (hors git, régénérés par le pipeline).
-
-## Constats contraires aux hypothèses (G3)
-- Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,93 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.
 - Taux territoriaux (scène 05) : carte et KPI calculés sur le cumul 2019–2025 (victimes cumulées / somme des populations annuelles) — par an et par département, le seuil G6 masquait la moitié des départements (relecture, B1).
 - `casque` à 3 modalités (Casque / Aucun équipement / Indéterminé) — secu = 8 « non déterminable » ne doit pas compter comme « sans casque ».
 - Taux par parc : groupe VP = catv 7 seulement (voiturette exclue, absente du parc VP du SDES).
+
+## Phase 2
+- `text-muted` : #646A73 (clair) et #8A939F (sombre) au lieu de #8A909A / #6E7783 — DESIGN §2.1 échouait AA (2,7–3,8:1) ; G12 est non négociable.
+- Rouge du mode sombre (`grav-tue`, `delta-hausse`) : #EE6266 au lieu de #E5484D — 3,95:1 sur bg-subtle, insuffisant pour le petit texte des variations.
+- Gammes Mantine `dark` et `gray` dérivées des tokens (teintes intermédiaires ajoutées) — sans cela Mantine affiche ses gris froids par défaut.
+- Anneau de focus = `accent-text` en clair (l'ambre pur ne fait que 2,1:1 sur papier), `accent` en sombre.
+- Illustration du héros générée en SVG par `design/hero.py` depuis `tokens.HERO_PALETTE` — pas de photo fournie, aucun droit tiers, cohérent avec G9 ; pluie animée (4 s) seulement sans mouvement réduit.
+- Retournement des KPI au clic / clavier par un script d'assets (`app/assets/app.js`) plutôt qu'un clientside_callback — même effet, sans aller-retour ni identifiant par carte.
+- Mini-courbes KPI : `dmc.Sparkline` en `var(--data-neutre)` + pastille `grav-tue` superposée pour le dernier point — suit le thème sans re-rendu.
+
+## Constats contraires aux hypothèses (G3)
+- Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,93 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.

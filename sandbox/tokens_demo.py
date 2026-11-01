@@ -4,6 +4,7 @@ Lancer : python sandbox/tokens_demo.py  ->  http://127.0.0.1:8051
 Les données de la figure sont FACTICES et marquées comme telles.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -113,4 +114,6 @@ def maj_figure(scheme):
 
 
 if __name__ == "__main__":
-    app.run(debug=True, port=8051)
+    # DASH_QA=1 : sans barre d'outils de debug (captures)
+    app.run(debug=True, port=8051, dev_tools_ui=os.getenv("DASH_QA") != "1",
+            dev_tools_disable_version_check=True)

@@ -12,7 +12,7 @@ LIGHT = {
     "border": "#DEDAD1",
     "text-primary": "#1B1F24",
     "text-secondary": "#5A6270",
-    "text-muted": "#8A909A",
+    "text-muted": "#646A73",
     "accent": "#E0A100",
     "accent-text": "#8A6100",
     "grav-tue": "#B3261E",
@@ -23,6 +23,8 @@ LIGHT = {
     "delta-baisse": "#2F7D5C",
     "delta-hausse": "#B3261E",
     "seq-na": "#E4E1DA",
+    "accent-soft": "rgba(224,161,0,.12)",
+    "focus-ring": "#8A6100",
     "on-image": "#FFFFFF",
 }
 DARK = {
@@ -32,17 +34,19 @@ DARK = {
     "border": "#2A323D",
     "text-primary": "#ECEEF1",
     "text-secondary": "#A6AEB9",
-    "text-muted": "#6E7783",
+    "text-muted": "#8A939F",
     "accent": "#F2B705",
     "accent-text": "#F2B705",
-    "grav-tue": "#E5484D",
+    "grav-tue": "#EE6266",
     "grav-hospi": "#E8834F",
     "grav-leger": "#C9956C",
     "data-neutre": "#8E99A6",
     "data-neutre-clair": "#4E5864",
     "delta-baisse": "#3FA37A",
-    "delta-hausse": "#E5484D",
+    "delta-hausse": "#EE6266",
     "seq-na": "#232A33",
+    "accent-soft": "rgba(242,183,5,.12)",
+    "focus-ring": "#F2B705",
     "on-image": "#FFFFFF",
 }
 SEQ = {
@@ -51,16 +55,32 @@ SEQ = {
 }
 CAT = ["#5B7083", "#6F8FAF", "#8C9A6E", "#A68A64", "#8E7CA6", "#4F8A8B"]
 
+# Illustration générée du héros (route de nuit sous la pluie, design/hero.py)
+HERO_PALETTE = {
+    "ciel-haut": "#07090C", "ciel-horizon": "#1B2431", "halo-ville": "#3A2E1A",
+    "relief": "#0B0F14", "chaussee": "#0F1318", "chaussee-loin": "#1A2029",
+    "marquage": "#C9CED6", "phare": "#FFF4D6", "feu-arriere": "#E5484D",
+    "reflet-ambre": "#F2B705", "pluie": "#A6AEB9",
+}
+
 # Voile de la carte héros (seul dégradé autorisé, §6.3) : couleur nuit en RGB + opacités
 HERO_VOILE_RGB = (14, 18, 23)
 HERO_VOILE_OPACITES = (0.15, 0.75)
 SURVOL_OMBRE = "0 4px 16px rgba(0,0,0,.06)"
+TRANSPARENT = "rgba(0,0,0,0)"
 
 # --- Gammes Mantine (§2.3) --------------------------------------------------
 AMBRE = ["#FFF8E1", "#FFEDB3", "#FFE082", "#FFD54F", "#F7C531", "#F2B705", "#E0A100",
          "#B88400", "#8A6100", "#5C4100"]
 GRAVITE = ["#FDECEA", "#F9CFCB", "#F2A7A0", "#EA7B72", "#E5484D", "#D13A33", "#B3261E",
            "#8F1E18", "#6B1611", "#47100B"]
+# Palette « dark » de Mantine (surfaces du mode sombre) alignée sur les tokens nuit :
+# 0 texte, 2 atténué, 4 bordure, 5 survol, 6 contrôle, 7 surface/fond, 8-9 plus profond
+MANTINE_DARK = ["#ECEEF1", "#C9CED6", "#A6AEB9", "#6E7783", "#2A323D", "#242B35", "#1E252E",
+                "#161B22", "#0E1217", "#0A0D11"]
+# Palette « gray » de Mantine réchauffée (fonds des contrôles sur papier, texte atténué)
+MANTINE_GRAY = ["#FAF9F6", "#F2EFE9", "#EAE6DE", "#DEDAD1", "#C8C3B8", "#A29D92", "#646A73",
+                "#4E4A44", "#34312D", "#1B1F24"]
 ARDOISE = ["#F1F3F5", "#E1E5EA", "#C3CAD3", "#A5AFBB", "#8E99A6", "#7D8A99", "#65717F",
            "#4E5864", "#38404A", "#22272E"]
 

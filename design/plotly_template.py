@@ -3,16 +3,16 @@
 import plotly.graph_objects as go
 import plotly.io as pio
 
-from design.tokens import FONT_SANS, tokens
+from design.tokens import FONT_SANS, TRANSPARENT, tokens
 
 
 def make_template(t: dict) -> go.layout.Template:
     return go.layout.Template(layout=dict(
         font=dict(family=FONT_SANS, size=13, color=t["text-secondary"]),
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor=TRANSPARENT, plot_bgcolor=TRANSPARENT,
         colorway=[t["data-neutre"], t["data-neutre-clair"]],
         margin=dict(l=8, r=8, t=8, b=8),
-        separators=", ",                      # virgule décimale, espace milliers
+        separators=",\u00a0",            # virgule décimale, espace insécable milliers
         xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor=t["border"],
                    ticks="outside", tickcolor=t["border"], tickfont=dict(size=12),
                    automargin=True),
