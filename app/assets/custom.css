@@ -1,0 +1,166 @@
+/* « Route de nuit » — variables et composants (DESIGN_SYSTEM.md §7).
+   Seul fichier, avec design/tokens.py, autorisé à contenir des couleurs (G9). */
+
+:root{
+  --bg-page:#F6F4EF;--bg-surface:#FFFFFF;--bg-subtle:#EDEAE3;--border:#DEDAD1;
+  --text-primary:#1B1F24;--text-secondary:#5A6270;--text-muted:#8A909A;
+  --accent:#E0A100;--accent-text:#8A6100;
+  --grav-tue:#B3261E;--grav-hospi:#D9703F;--grav-leger:#E9B48A;
+  --data-neutre:#7D8A99;--data-neutre-clair:#C3CAD3;
+  --delta-baisse:#2F7D5C;--delta-hausse:#B3261E;
+  --seq-1:#F3E9DF;--seq-2:#EBC3A8;--seq-3:#DC8A68;--seq-4:#B8493A;--seq-5:#7A1712;--seq-na:#E4E1DA;
+  --accent-soft:rgba(224,161,0,.12);
+  --on-image:#FFFFFF;
+  --hero-voile:linear-gradient(180deg,rgba(14,18,23,.15),rgba(14,18,23,.75));
+  --shadow-hover:0 4px 16px rgba(0,0,0,.06);
+  --font-serif:Fraunces,Georgia,serif;--font-sans:Inter,system-ui,sans-serif;
+  --radius-sm:6px;--radius-md:12px;--radius-lg:16px;
+  --content-max:1280px;--header-h:64px;--navbar-w:240px;
+}
+[data-mantine-color-scheme="dark"]{
+  --bg-page:#0E1217;--bg-surface:#161B22;--bg-subtle:#1E252E;--border:#2A323D;
+  --text-primary:#ECEEF1;--text-secondary:#A6AEB9;--text-muted:#6E7783;
+  --accent:#F2B705;--accent-text:#F2B705;
+  --grav-tue:#E5484D;--grav-hospi:#E8834F;--grav-leger:#C9956C;
+  --data-neutre:#8E99A6;--data-neutre-clair:#4E5864;
+  --delta-baisse:#3FA37A;--delta-hausse:#E5484D;
+  --seq-1:#2A1F1D;--seq-2:#5A2A24;--seq-3:#93372E;--seq-4:#C9473C;--seq-5:#F05A4F;--seq-na:#232A33;
+  --accent-soft:rgba(242,183,5,.12);
+  --shadow-hover:none;
+}
+
+/* Mantine lit ces variables : on aligne ses surfaces sur nos tokens */
+:root,[data-mantine-color-scheme="dark"]{
+  --mantine-color-body:var(--bg-page);
+  --mantine-color-text:var(--text-primary);
+  --mantine-color-dimmed:var(--text-secondary);
+  --mantine-color-default:var(--bg-surface);
+  --mantine-color-default-border:var(--border);
+  --mantine-color-default-hover:var(--bg-subtle);
+  --mantine-color-anchor:var(--accent-text);
+}
+
+html,body{background:var(--bg-page);color:var(--text-primary)}
+body{font-family:var(--font-sans);font-feature-settings:"tnum" 1;-webkit-font-smoothing:antialiased}
+
+/* --- Typographie (§3) --- */
+.display{font:600 64px/68px var(--font-serif);letter-spacing:-.01em}
+.h1{font:500 36px/44px var(--font-serif);color:var(--text-primary);margin:0;letter-spacing:-.005em}
+.h2{font:500 22px/30px var(--font-serif);color:var(--text-primary);margin:0}
+.kpi-value{font:600 34px/38px var(--font-sans);font-variant-numeric:tabular-nums;color:var(--text-primary)}
+.body{font:400 16px/26px var(--font-sans);color:var(--text-secondary)}
+.label{font:500 12px/16px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--text-secondary)}
+.caption{font:400 12px/16px var(--font-sans);color:var(--text-muted)}
+.titre-accent{font-family:var(--font-serif);font-style:italic;color:var(--grav-tue)}
+.recit{max-width:68ch}
+.num{font-variant-numeric:tabular-nums}
+.t-primary{color:var(--text-primary)}.t-secondary{color:var(--text-secondary)}.t-muted{color:var(--text-muted)}
+.t-accent{color:var(--accent-text)}.t-tue{color:var(--grav-tue)}
+.delta-baisse{color:var(--delta-baisse)}.delta-hausse{color:var(--delta-hausse)}.delta-neutre{color:var(--text-secondary)}
+
+/* --- Surfaces --- */
+.surface{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md)}
+.carte{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-md);
+  padding:24px;transition:box-shadow .2s ease-out,background-color .2s ease-out}
+.carte:hover{box-shadow:var(--shadow-hover)}
+[data-mantine-color-scheme="dark"] .carte:hover{background:var(--bg-subtle)}
+
+/* --- Carte KPI retournable (§6.2) --- */
+.kpi-flip{perspective:1000px;height:200px;cursor:pointer;outline:none;border-radius:var(--radius-md)}
+.kpi-flip-inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}
+.kpi-flip:hover .kpi-flip-inner,.kpi-flip:focus-visible .kpi-flip-inner,.kpi-flip.on .kpi-flip-inner{transform:rotateY(180deg)}
+.kpi-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:var(--radius-md);
+  border:1px solid var(--border);background:var(--bg-surface);padding:20px 22px;display:flex;flex-direction:column;gap:6px;overflow:hidden}
+.kpi-back{transform:rotateY(180deg);background:var(--bg-subtle);border-left:3px solid var(--accent);border-radius:0 var(--radius-md) var(--radius-md) 0;gap:8px}
+.kpi-flip:focus-visible .kpi-face{box-shadow:0 0 0 2px var(--accent)}
+.kpi-head{display:flex;align-items:center;gap:6px;color:var(--text-secondary)}
+.kpi-deltas{font:500 12px/16px var(--font-sans);display:flex;flex-wrap:wrap;gap:4px 10px}
+.kpi-leader{font:400 12px/16px var(--font-sans);color:var(--text-secondary);display:flex;align-items:center;gap:6px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi-leader b{color:var(--text-primary);font-weight:600}
+.kpi-spark{margin-top:auto;height:28px}
+.kpi-hint{font:400 11px/14px var(--font-sans);color:var(--text-muted);display:flex;align-items:center;gap:4px}
+.kpi-back-title{font:500 11px/14px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
+.kpi-back-text{font:400 13px/19px var(--font-sans);color:var(--text-primary)}
+.kpi-na{color:var(--text-muted)}
+
+/* --- Encart « Et alors ? » (§6.5) --- */
+.insight{background:var(--bg-subtle);border-left:3px solid var(--accent);border-radius:0 var(--radius-md) var(--radius-md) 0;padding:16px 20px}
+.insight .label{color:var(--accent-text);margin-bottom:4px}
+.insight p{margin:0;font:400 16px/26px var(--font-sans);color:var(--text-primary);max-width:90ch}
+
+/* --- Carte graphique (§6.4) --- */
+.chart-card{display:flex;flex-direction:column;gap:12px;min-width:0}
+.chart-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.chart-foot{border-top:1px solid var(--border);padding-top:10px}
+.chip-filtre{display:inline-flex;align-items:center;gap:6px;font:500 12px/16px var(--font-sans);color:var(--accent-text);
+  background:var(--accent-soft);border-radius:999px;padding:3px 10px;border:0;cursor:pointer}
+.chip-filtre:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.chip-info{display:inline-flex;align-items:center;gap:6px;font:500 12px/16px var(--font-sans);color:var(--text-secondary);
+  background:var(--bg-subtle);border-radius:999px;padding:3px 10px}
+.seuil-msg{display:flex;align-items:center;justify-content:center;min-height:200px;color:var(--text-muted);
+  font:400 14px/20px var(--font-sans);text-align:center;padding:24px}
+
+/* --- En-tête de scène (§6.6) --- */
+.scene-header{display:flex;flex-direction:column;gap:12px;max-width:900px}
+.scene-header .body{max-width:68ch;margin:0}
+
+/* --- Header (§6.1) --- */
+.app-header{background:var(--bg-surface);border-bottom:1px solid var(--border)}
+.header-inner{height:calc(var(--header-h) - 2px);display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 20px}
+.monogramme{width:32px;height:32px;border-radius:8px;background:var(--text-primary);color:var(--bg-surface);
+  display:flex;align-items:center;justify-content:center;font:600 16px/1 var(--font-serif)}
+.brand-title{font:500 18px/22px var(--font-serif);color:var(--text-primary)}
+.progress-track{height:2px;background:transparent}
+.progress-rule{height:2px;background:var(--accent);transition:width .25s ease-out}
+.filtre-label{display:flex;align-items:center;gap:4px;margin-bottom:2px}
+
+/* --- Navigation (§6.7) --- */
+.app-navbar{background:var(--bg-surface);border-right:1px solid var(--border)}
+.nav-badge{font:500 11px/15px var(--font-sans);letter-spacing:.06em;text-transform:uppercase;color:var(--accent-text);
+  background:var(--accent-soft);border-radius:var(--radius-sm);padding:8px 10px;text-align:center}
+.nav-link{border-radius:var(--radius-sm);border-left:3px solid transparent;color:var(--text-secondary)}
+.nav-link[data-active]{background:var(--accent-soft);border-left-color:var(--accent);color:var(--text-primary)}
+.nav-num{font:500 12px/16px var(--font-sans);color:var(--text-muted);font-variant-numeric:tabular-nums;min-width:18px}
+.scene-nav{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding-top:8px}
+
+/* --- Héros (§6.3) --- */
+.hero{position:relative;border-radius:var(--radius-lg);overflow:hidden;min-height:min(78vh,720px);display:flex;align-items:flex-end;
+  background-color:var(--bg-subtle);background-size:cover;background-position:center}
+.hero::before{content:"";position:absolute;inset:0;background:var(--hero-voile)}
+.hero-content{position:relative;padding:48px;color:var(--on-image);display:flex;flex-direction:column;gap:12px;max-width:820px}
+.hero-content .label{color:var(--on-image);opacity:.85}
+.hero-number{font:600 clamp(64px,12vw,128px)/1 var(--font-serif);color:var(--on-image);font-variant-numeric:tabular-nums}
+.hero-sub{font:400 20px/28px var(--font-sans);color:var(--on-image);opacity:0;animation:fade-in .6s ease-out 1s forwards}
+.hero-credit{font:400 11px/14px var(--font-sans);color:var(--on-image);opacity:.7;position:absolute;right:16px;bottom:12px}
+@keyframes fade-in{to{opacity:.95}}
+.triptyque{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+
+/* --- Démo / sandbox --- */
+.swatch{width:100%;height:56px;border-radius:var(--radius-sm);border:1px solid var(--border)}
+.sw-bg-page{background:var(--bg-page)}.sw-bg-surface{background:var(--bg-surface)}.sw-bg-subtle{background:var(--bg-subtle)}
+.sw-border{background:var(--border)}.sw-text-primary{background:var(--text-primary)}.sw-text-secondary{background:var(--text-secondary)}
+.sw-text-muted{background:var(--text-muted)}.sw-accent{background:var(--accent)}.sw-accent-text{background:var(--accent-text)}
+.sw-grav-tue{background:var(--grav-tue)}.sw-grav-hospi{background:var(--grav-hospi)}.sw-grav-leger{background:var(--grav-leger)}
+.sw-data-neutre{background:var(--data-neutre)}.sw-data-neutre-clair{background:var(--data-neutre-clair)}
+.sw-delta-baisse{background:var(--delta-baisse)}.sw-delta-hausse{background:var(--delta-hausse)}
+.sw-seq-1{background:var(--seq-1)}.sw-seq-2{background:var(--seq-2)}.sw-seq-3{background:var(--seq-3)}
+.sw-seq-4{background:var(--seq-4)}.sw-seq-5{background:var(--seq-5)}.sw-seq-na{background:var(--seq-na)}
+.factice{font:500 11px/14px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);
+  border:1px dashed var(--border);border-radius:var(--radius-sm);padding:2px 8px;display:inline-block}
+
+/* --- Focus clavier (§11) --- */
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+/* --- Responsive (§10) --- */
+@media (max-width:1199px){.triptyque{grid-template-columns:1fr}}
+@media (max-width:767px){
+  .h1{font-size:28px;line-height:36px}
+  .hero-content{padding:24px}
+  .header-inner{padding:0 12px}
+}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important}
+  .hero-sub{opacity:.95}
+}
