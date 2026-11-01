@@ -37,6 +37,15 @@ def bande_2020(fig, t, texte="Confinements", row=None, col=None):
                                     yanchor="bottom"))
 
 
+def message_figure(texte: str, scheme: str) -> go.Figure:
+    """Figure vide portant un message (effectif trop faible, donnée indisponible)."""
+    t = tokens(scheme)
+    fig = go.Figure()
+    fig.add_annotation(**_annot(t, 0.5, 0.5, texte, t["text-muted"], xref="paper",
+                                yref="paper"))
+    return _base(fig, scheme, xaxis=dict(visible=False), yaxis=dict(visible=False))
+
+
 # --- Scène 02 ------------------------------------------------------------
 
 def lignes_base100(annees, series: dict[str, list], alerte: str, scheme: str) -> go.Figure:
@@ -57,7 +66,8 @@ def lignes_base100(annees, series: dict[str, list], alerte: str, scheme: str) ->
     bande_2020(fig, t)
     return _base(fig, scheme, hovermode="x unified", showlegend=False,
                  margin=dict(l=8, r=150, t=28, b=8),
-                 xaxis=dict(dtick=1), yaxis=dict(title=None, ticksuffix=""))
+                 xaxis=dict(dtick=1, range=[annees[0] - 0.3, annees[-1] + 0.3]),
+                 yaxis=dict(title=None))
 
 
 def barres_annuelles(annees, valeurs, scheme: str, alerte_derniere=True,
@@ -94,8 +104,8 @@ def barres_miroir(categories, part_gauche, part_droite, alerte: str, lib_g: str,
                          text=[fmt_pct(v, 0) for v in part_droite], textposition="outside",
                          cliponaxis=False,
                          hovertemplate=f"%{{y}} · {lib_d} : %{{x:.1f}} %<extra></extra>"))
-    borne = max(max(part_gauche), max(part_droite)) * 1.25
-    ticks = [v for v in (-100, -75, -50, -25, 0, 25, 50, 75, 100) if abs(v) <= borne]
+    borne = max(max(part_gauche), max(part_droite)) * 1.4
+    ticks = [v for v in (-100, -50, 0, 50, 100) if abs(v) <= borne]
     fig.add_vline(x=0, line=dict(color=t["border"], width=1))
     fig.add_annotation(**_annot(t, -borne, 1.02, f"← {lib_g}", t["text-secondary"],
                                 xanchor="left", yref="paper", yanchor="bottom"))
@@ -111,7 +121,7 @@ def barres_miroir(categories, part_gauche, part_droite, alerte: str, lib_g: str,
 
 def barres_categories(categories, valeurs, moyenne, scheme: str, alerte=None,
                       fmt=lambda v: fmt_number(v, 1), masques=None,
-                      libelle_moyenne="Moyenne") -> go.Figure:
+                      libelle_moyenne="Moyenne", titre_x: str | None = None) -> go.Figure:
     """Barres verticales ; `alerte` = catégorie en rouge (défaut : la plus haute) ;
     `masques` = catégories sous le seuil (grisées, sans valeur)."""
     t = tokens(scheme)
@@ -124,20 +134,22 @@ def barres_categories(categories, valeurs, moyenne, scheme: str, alerte=None,
         masque = c in masques
         couleurs.append(t["seq-na"] if masque else
                         t["grav-tue"] if c == alerte else t["data-neutre"])
-        textes.append("Effectif trop faible" if masque else fmt(v))
+        textes.append("—" if masque else fmt(v))
         ys.append(0 if masque else v)
     fig = go.Figure(go.Bar(
         x=[str(c) for c in categories], y=ys, marker_color=couleurs, marker_line_width=0,
         marker_cornerradius=4, text=textes, textposition="outside", cliponaxis=False,
         textfont=dict(color=t["text-primary"]),
-        hovertemplate="%{x} : %{text}<extra></extra>"))
+        hovertemplate="%{x} : %{customdata}<extra></extra>",
+        customdata=["effectif trop faible" if c in masques else fmt(v)
+                    for c, v in zip(categories, valeurs, strict=True)]))
     if moyenne is not None:
         fig.add_hline(y=moyenne, line=dict(color=t["text-secondary"], width=1, dash="dash"),
                       annotation_text=f"{libelle_moyenne} {fmt(moyenne)}",
                       annotation_position="top left",
                       annotation_font=dict(size=12, color=t["text-secondary"]))
     return _base(fig, scheme, margin=dict(l=8, r=8, t=28, b=8), bargap=0.3,
-                 xaxis=dict(type="category"),
+                 xaxis=dict(type="category", title=dict(text=titre_x, font=dict(size=12))),
                  yaxis=dict(showticklabels=False, showgrid=False, rangemode="tozero"))
 
 

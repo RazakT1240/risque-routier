@@ -158,7 +158,7 @@ def kpis(filtres, scheme):
                  lire="Nombre de tués pour 100 victimes : la gravité moyenne d'un accident.",
                  assureur="Une létalité qui monte alourdit le coût moyen par sinistre corporel.",
                  source=source, indisponible=let is None),
-        kpi_card("s02-k4", libelle_kpi("Victimes / 100 000 hab.", periode), "tabler:users",
+        kpi_card("s02-k4", "Victimes / 100 000 hab.", "tabler:users",
                  fmt_ou_na(taux, 1), deltas=deltas_annuels(serie_taux, periode)
                  if taux is not None else [], leader=leader_taux,
                  spark=serie_taux.tolist(),

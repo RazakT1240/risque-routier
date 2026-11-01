@@ -12,6 +12,7 @@ from dash import dcc, html
 from dash_iconify import DashIconify
 
 GRAPH_CONFIG = {"displayModeBar": False, "responsive": True}
+FIGURE_VIDE = {"data": [], "layout": {}}
 
 
 def graph_id(nom: str) -> dict:
@@ -50,7 +51,7 @@ def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *
     avec_graphe = corps is None
     graphe = corps if not avec_graphe else dcc.Loading(
         type="dot", delay_show=300, color="var(--accent)",
-        children=dcc.Graph(id=graph_id(nom), figure=figure, config=GRAPH_CONFIG,
+        children=dcc.Graph(id=graph_id(nom), figure=figure or FIGURE_VIDE, config=GRAPH_CONFIG,
                            style={"height": f"{hauteur}px"}, className="chart-graph"))
     return html.Section(className="carte chart-card", role="figure",
                         **{"aria-label": aria or (titre if isinstance(titre, str) else nom)},

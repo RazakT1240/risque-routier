@@ -54,7 +54,7 @@ def variation_pct(valeur, reference):
     return (valeur / reference - 1) * 100
 
 
-def delta(valeur, reference, libelle: str, plus_est_mauvais: bool = True,
+def delta(valeur, reference, libelle: str, plus_est_mauvais: bool | None = True,
           decimals: int = 1) -> dict:
     """Variation affichable : flèche ▲▼ + couleur selon le sens POUR L'ASSUREUR (DESIGN §2.2)."""
     v = variation_pct(valeur, reference)
@@ -64,6 +64,9 @@ def delta(valeur, reference, libelle: str, plus_est_mauvais: bool = True,
     if arrondi == 0:
         return {"texte": f"= {fmt_pct(0, decimals)} vs {libelle}", "sens": "neutre"}
     fleche = "▲" if v > 0 else "▼"
+    if plus_est_mauvais is None:          # part ou structure : ni bonne ni mauvaise
+        return {"texte": f"{fleche} {fmt_pct(v, decimals, signe=True)} vs {libelle}",
+                "sens": "neutre"}
     mauvais = (v > 0) == plus_est_mauvais
     return {"texte": f"{fleche} {fmt_pct(v, decimals, signe=True)} vs {libelle}",
             "sens": "defavorable" if mauvais else "favorable"}

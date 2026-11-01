@@ -40,13 +40,15 @@ def taux_masque(num: float, den: float, eff: float, facteur: float = 1.0):
     return float(masque_seuil(pd.Series([num / den * facteur]), pd.Series([eff])).iloc[0])
 
 
-def deltas_annuels(serie: pd.Series, periode: str, plus_est_mauvais=True,
+def deltas_annuels(serie: pd.Series, periode: str, plus_est_mauvais: bool | None = True,
                    decimals: int = 1) -> list[dict]:
     """▲▼ vs N−1 et vs 2019 pour l'année choisie ; rien en cumul."""
     if periode == da.PERIODE_CUMUL:
         return [{"texte": f"Cumul {da.LIBELLE_PERIODE_CUMUL}", "sens": "neutre"}]
     a = int(periode)
     out = []
+    if pd.isna(serie.get(a)):
+        return out
     if a - 1 in serie.index:
         out.append(delta(serie[a], serie[a - 1], str(a - 1), plus_est_mauvais, decimals))
     if a != da.PREMIERE_ANNEE:

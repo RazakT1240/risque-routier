@@ -94,4 +94,4 @@ def bascule(nom: str, options: list[str], valeur: str, label: str) -> html.Div:
 def scene_layout(*blocs) -> dmc.Container:
     """Anatomie d'une scène : blocs empilés, 48 px entre blocs, contenu max 1280 px."""
     return dmc.Container(size=1280, px={"base": 16, "sm": 32}, py=40,
-                         children=dmc.Stack(gap=48, children=[b for b in blocs if b]))
+                         children=dmc.Stack(gap=48, children=[b for b in blocs if b is not None]))
