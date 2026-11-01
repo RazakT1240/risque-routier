@@ -9,7 +9,7 @@ from __future__ import annotations
 import math
 
 NA = "—"
-MILLIERS = "\u202f"     # espace fine insécable
+MILLIERS = "\u00a0"     # espace insécable (l'espace fine U+202F est quasi invisible)
 INSECABLE = "\u00a0"
 MOINS = "\u2212"        # vrai signe moins
 

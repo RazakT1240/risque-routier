@@ -41,3 +41,4 @@ Format : décision — justification (une ligne).
 ## Constats contraires aux hypothèses (G3)
 - Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,93 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.
 - Scène 04 : la létalité des 2RM (4,0 tués / 100 victimes) est inférieure à celle des occupants de voiture (4,9) ; c'est sur le taux de gravité que les 2RM ressortent.
+- Séparateur de milliers : espace insécable U+00A0 (et non l'espace fine U+202F, quasi invisible à l'écran dans Inter) — même séparateur que les figures Plotly.
