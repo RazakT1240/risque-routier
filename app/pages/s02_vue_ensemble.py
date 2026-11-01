@@ -22,6 +22,7 @@ from app.components.scene_utils import (
     taux_masque,
 )
 from app.scenes import voisines
+from design.tokens import tokens
 from pipeline import config as C
 from pipeline.indicators import base_100, letalite
 
@@ -78,10 +79,19 @@ def layout(**_):
                        "Indice base 100 en 2019 : tués, blessés hospitalisés, blessés légers.",
                        da.SOURCE_BAAC, "valeur de l'année / valeur 2019 × 100",
                        hauteur=340),
+            chart_card("s02-letalite", "La létalité, année par année",
+                       "Tués pour 100 victimes ; sous l'axe, la variation d'une année sur "
+                       "l'autre.", da.SOURCE_BAAC, "létalité = tués / victimes × 100 ; années "
+                       "sous 30 victimes masquées", hauteur=340),
+        ]),
+        html.Div(className="grille-2-1", children=[
             chart_card("s02-barres", "Tués par an",
                        "Personnes décédées dans les 30 jours suivant l'accident.",
                        da.SOURCE_BAAC, "usagers de gravité « tué » (décès à 30 jours)",
                        hauteur=340),
+            chart_card("s02-donut", "Répartition des victimes par gravité",
+                       "Répartition des victimes par gravité.", da.SOURCE_BAAC,
+                       "tués, blessés hospitalisés (> 24 h), blessés légers", hauteur=340),
         ]),
         insight(et_alors()),
         scene_nav(*voisines(NUM)),
@@ -138,6 +148,7 @@ def kpis(filtres, scheme):
     source = f"Source : {da.SOURCE_BAAC} · {da.libelle_territoire(dep)}."
     return kpi_row([
         kpi_card("s02-k1", libelle_kpi("Tués", periode), "tabler:cross", fmt_number(tues),
+                 vedette=True,
                  compte=int(tues), deltas=deltas_annuels(s["tues"], periode),
                  leader=leader_type("tues", "tués"), spark=s["tues"].tolist(),
                  lire="Personnes décédées dans les 30 jours qui suivent l'accident.",
@@ -164,9 +175,9 @@ def kpis(filtres, scheme):
                  fmt_ou_na(taux, 1), deltas=deltas_annuels(serie_taux, periode)
                  if taux is not None else [], leader=leader_taux,
                  spark=serie_taux.tolist(),
-                 lire="Victimes rapportées à la population du département de l'accident : les "
-                      "départements touristiques ou de transit sont gonflés par les non-résidents.",
-                 assureur="La fréquence corporelle par habitant, comparable entre territoires.",
+                 lire="Victimes rapportées aux habitants du département de l'accident.",
+                 assureur="Fréquence par habitant, gonflée par les non-résidents en zone "
+                          "touristique.",
                  source=f"Source : {da.SOURCE_BAAC} ; {da.SOURCE_INSEE}.",
                  indisponible=taux is None),
     ])
@@ -207,3 +218,34 @@ def puces(filtres, scheme):
     p = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
     return p, p
 
+
+
+@callback(Output(graph_id("s02-letalite"), "figure"), Output("s02-letalite-puces", "children"),
+          Output(graph_id("s02-donut"), "figure"), Output("s02-donut-puces", "children"),
+          Output("s02-donut-titre", "children"), *ENTREES)
+def evolution_et_repartition(filtres, scheme):
+    periode, dep, scheme = lire(filtres, scheme)
+    s = par_annee("s02_gravite", dep, COLS)
+    let = letalite(s["tues"], s["victimes"]).where(s["victimes"] >= SEUIL)
+    if let.notna().sum() < 2:
+        fig_l = F.message_figure("Moins de 30 victimes par an : létalité non affichée", scheme)
+    else:
+        fig_l = F.courbe_annotee(C.ANNEES, let.round(2).tolist(), scheme,
+                                 unite="tués / 100 victimes")
+    ans = da.annees(periode)
+    tot = s.loc[ans]
+    vals = [float(tot["tues"].sum()), float(tot["hospitalises"].sum()),
+            float(tot["legers"].sum())]
+    tk = tokens(scheme)
+    if sum(vals) < SEUIL:
+        fig_d = F.message_figure("Moins de 30 victimes sur ce périmètre", scheme)
+        titre_d = "Répartition des victimes par gravité"
+    else:
+        part_graves = (vals[0] + vals[1]) / sum(vals) * 100
+        fig_d = F.donut(["Tués", "Blessés hospitalisés", "Blessés légers"], vals,
+                        [tk["grav-tue"], tk["grav-hospi"], tk["grav-leger"]],
+                        fmt_number(sum(vals)), "victimes", scheme)
+        titre_d = (f"{fmt_pct(part_graves, 0)} des victimes sont tuées ou hospitalisées")
+    p_toutes = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
+    p_periode = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
+    return fig_l, p_toutes, fig_d, p_periode, titre_d

@@ -111,7 +111,7 @@ def barres_miroir(categories, part_gauche, part_droite, alerte: str, lib_g: str,
     ecart = part_droite[i] - part_gauche[i]
     fig.add_annotation(**_annot(t, part_droite[i], alerte,
                                 f"<b>écart {fmt_number(ecart, 0, signe=True)} pts</b>",
-                                t["grav-tue"], xanchor="left", xshift=34, yshift=0))
+                                t["grav-tue"], xanchor="left", xshift=46, yshift=0))
     fig.add_annotation(**_annot(t, -borne, 1.02, f"← {lib_g}", t["text-secondary"],
                                 xanchor="left", yref="paper", yanchor="bottom"))
     fig.add_annotation(**_annot(t, borne, 1.02, f"{lib_d} →", t["text-secondary"],
@@ -270,7 +270,7 @@ def choroplethe(geojson, deps, noms, valeurs, scheme: str, unite: str,
             geojson=geojson, featureidkey="properties.code", locations=[selection], z=[0],
             colorscale=[[0, TRANSPARENT], [1, TRANSPARENT]], showscale=False,
             marker_line_color=t["accent"], marker_line_width=2.5, hoverinfo="skip"))
-    fig.update_geos(fitbounds="locations", visible=False, projection_type="mercator",
+    fig.update_geos(fitbounds="locations", visible=False, projection_type="conic conformal",
                     bgcolor=TRANSPARENT)
     _base(fig, scheme, margin=dict(l=0, r=0, t=0, b=0), dragmode=False)
     return fig, list(bornes)
@@ -413,3 +413,190 @@ def pareto(segments, parts, cumul, seuil, scheme: str) -> go.Figure:
     return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=16, b=8),
                  xaxis=dict(tickangle=-35, tickfont=dict(size=11)),
                  yaxis=dict(range=[0, 105], ticksuffix=" %"))
+
+
+# --- Graphiques ajoutés (refonte visuelle) -----------------------------------
+
+def donut(libelles, valeurs, couleurs, centre: str, sous_centre: str, scheme: str) -> go.Figure:
+    """Anneau de répartition, 3 parts au plus (G11), légende directe en bas."""
+    if len(valeurs) > 3:
+        raise ValueError("Un anneau de répartition ne peut pas avoir plus de 3 parts (G11).")
+    t = tokens(scheme)
+    total = sum(valeurs)
+    fig = go.Figure(go.Pie(
+        labels=libelles, values=valeurs, hole=0.68, sort=False, direction="clockwise",
+        marker=dict(colors=couleurs, line=dict(color=t["bg-surface"], width=3)),
+        textinfo="none", customdata=[fmt_pct(v / total * 100, 1) for v in valeurs],
+        hovertemplate="%{label} : %{value:,.0f} (%{customdata})<extra></extra>"))
+    fig.add_annotation(**_annot(t, 0.5, 0.56, f"<b>{centre}</b>", t["text-primary"],
+                                xref="paper", yref="paper"))
+    fig.layout.annotations[-1].font.update(size=26, family=FONT_SANS)
+    fig.add_annotation(**_annot(t, 0.5, 0.42, sous_centre, t["text-secondary"], xref="paper",
+                                yref="paper"))
+    return _base(fig, scheme, showlegend=True, margin=dict(l=8, r=8, t=8, b=8),
+                 legend=dict(orientation="h", y=-0.05, x=0.5, xanchor="center",
+                             font=dict(size=12, color=t["text-secondary"])))
+
+
+def anneau_jauge(part: float, libelle: str, scheme: str, alerte: bool = True) -> go.Figure:
+    """Jauge en anneau : une part (0–100 %) sur fond neutre."""
+    t = tokens(scheme)
+    coul = t["grav-tue"] if alerte else t["data-neutre"]
+    fig = go.Figure(go.Pie(
+        values=[part, 100 - part], hole=0.78, sort=False, direction="clockwise", rotation=0,
+        marker=dict(colors=[coul, t["seq-na"]], line=dict(width=0)), textinfo="none",
+        hoverinfo="skip"))
+    fig.add_annotation(**_annot(t, 0.5, 0.55, f"<b>{fmt_pct(part, 0)}</b>", t["text-primary"],
+                                xref="paper", yref="paper"))
+    fig.layout.annotations[-1].font.update(size=30)
+    fig.add_annotation(**_annot(t, 0.5, 0.38, libelle, t["text-secondary"], xref="paper",
+                                yref="paper"))
+    return _base(fig, scheme, showlegend=False, margin=dict(l=4, r=4, t=4, b=4))
+
+
+def courbe_annotee(annees, valeurs, scheme: str, fmt=lambda v: fmt_number(v, 1),
+                   plus_est_mauvais: bool | None = True, unite: str = "") -> go.Figure:
+    """Évolution année par année : chaque point étiqueté, creux et pic en pastilles,
+    variation annuelle sous l'axe (couleur selon le sens pour l'assureur)."""
+    t = tokens(scheme)
+    vals = [None if v is None or v != v else v for v in valeurs]
+    ok = [(a, v) for a, v in zip(annees, vals, strict=True) if v is not None]
+    fig = go.Figure(go.Scatter(
+        x=annees, y=vals, mode="lines+markers+text",
+        line=dict(color=t["text-primary"], width=2.5, shape="spline", smoothing=0.5),
+        marker=dict(size=8, color=t["bg-surface"], line=dict(color=t["text-primary"], width=2)),
+        text=[fmt(v) if v is not None else "" for v in vals], textposition="top center",
+        textfont=dict(size=12, color=t["text-secondary"]), cliponaxis=False,
+        hovertemplate="%{x} : %{text}" + (f" {unite}" if unite else "") + "<extra></extra>",
+        connectgaps=False))
+    if ok:
+        bas, haut = min(ok, key=lambda x: x[1]), max(ok, key=lambda x: x[1])
+        for (a, v), txt, coul in ((bas, "Creux", t["data-neutre"]), (haut, "Pic", t["grav-tue"])):
+            fig.add_annotation(x=a, y=v, text=f"<b>{txt}</b>", showarrow=False, yshift=-22,
+                               font=dict(size=11, color=t["bg-surface"]), bgcolor=coul,
+                               borderpad=3)
+    for i in range(1, len(vals)):
+        if vals[i] is None or vals[i - 1] in (None, 0):
+            continue
+        var = (vals[i] / vals[i - 1] - 1) * 100
+        if plus_est_mauvais is None:
+            coul = t["text-muted"]
+        else:
+            coul = t["delta-hausse"] if (var > 0) == plus_est_mauvais else t["delta-baisse"]
+        fig.add_annotation(x=annees[i], y=0, yref="paper", yshift=-34, showarrow=False,
+                           text=fmt_pct(var, 1, signe=True), font=dict(size=10, color=coul))
+    vv = [v for _, v in ok] or [0, 1]
+    marge = (max(vv) - min(vv)) * 0.35 or max(vv) * 0.1 or 1
+    return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=24, b=40),
+                 xaxis=dict(dtick=1, range=[annees[0] - 0.4, annees[-1] + 0.4]),
+                 yaxis=dict(showticklabels=False, showgrid=False,
+                            range=[min(vv) - marge, max(vv) + marge]))
+
+
+def boites(stats: list[dict], scheme: str, alerte: str | None = None,
+           titre_y: str = "Âge (ans)") -> go.Figure:
+    """Boîtes à moustaches à partir de statistiques précalculées (q1, médiane, q3, bas, haut)."""
+    t = tokens(scheme)
+    fig = go.Figure()
+    for s in stats:
+        coul = t["grav-tue"] if s["nom"] == alerte else t["data-neutre"]
+        fig.add_trace(go.Box(
+            name=s["nom"], x=[s["nom"]], q1=[s["q1"]], median=[s["mediane"]], q3=[s["q3"]],
+            lowerfence=[s["bas"]], upperfence=[s["haut"]], mean=[s["moyenne"]], boxmean=True,
+            marker_color=coul, line=dict(color=coul, width=1.5), fillcolor=coul, opacity=0.85,
+            whiskerwidth=0.4, width=0.55,
+            hovertemplate=(f"<b>{s['nom']}</b><br>Médiane : {fmt_number(s['mediane'], 0)} ans"
+                           f"<br>Moitié centrale : {fmt_number(s['q1'], 0)} – "
+                           f"{fmt_number(s['q3'], 0)} ans<br>Effectif : {fmt_number(s['n'])}"
+                           "<extra></extra>")))
+        fig.add_annotation(**_annot(t, s["nom"], s["mediane"], fmt_number(s["mediane"], 0),
+                                    t["text-primary"], xshift=26))
+    return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=12, b=8),
+                 yaxis=dict(title=dict(text=titre_y, font=dict(size=12)), rangemode="tozero"),
+                 xaxis=dict(showline=False))
+
+
+def boites_annuelles(annees, valeurs_par_annee: dict, scheme: str, unite: str,
+                     selection: dict | None = None) -> go.Figure:
+    """Dispersion d'un taux entre départements, une boîte par année, points visibles ;
+    `selection` = {année: valeur} du département filtré (pastille ambre)."""
+    t = tokens(scheme)
+    fig = go.Figure()
+    for a in annees:
+        vals = [v for v in valeurs_par_annee.get(a, []) if v == v]
+        fig.add_trace(go.Box(
+            y=vals, name=str(a), boxpoints="all", jitter=0.45, pointpos=0,
+            marker=dict(size=4, color=t["data-neutre-clair"], opacity=0.8),
+            line=dict(color=t["data-neutre"], width=1.5), fillcolor=t["bg-subtle"],
+            whiskerwidth=0.4, hoveron="boxes",
+            hovertemplate=f"{a}<br>Médiane : %{{median:.1f}} {unite}<extra></extra>"))
+    if selection:
+        xs = [a for a in annees if selection.get(a) is not None and selection[a] == selection[a]]
+        fig.add_trace(go.Scatter(
+            x=[str(a) for a in xs], y=[selection[a] for a in xs], mode="lines+markers",
+            line=dict(color=t["accent"], width=2),
+            marker=dict(size=9, color=t["accent"], line=dict(color=t["bg-surface"], width=2)),
+            name="Département filtré",
+            hovertemplate="%{x} : %{y:.1f} " + unite + "<extra>Département filtré</extra>"))
+    return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=12, b=8),
+                 yaxis=dict(title=dict(text=unite, font=dict(size=12)), rangemode="tozero"))
+
+
+def matrice(lignes, colonnes, z, masque, scheme: str, fmt=lambda v: fmt_number(v, 1),
+            titre_x: str | None = None, survol: str = "") -> go.Figure:
+    """Matrice annotée (valeur dans chaque case), échelle séquentielle ; cases masquées grisées."""
+    t = tokens(scheme)
+    seq = [t[f"seq-{i}"] for i in range(1, 6)]
+    zz = np.array(z, dtype=float)
+    zz[np.array(masque, dtype=bool)] = np.nan
+    vmax = np.nanmax(zz) if np.isfinite(zz).any() else 1
+    fig = go.Figure(go.Heatmap(
+        z=zz, x=colonnes, y=lignes, xgap=3, ygap=3, showscale=False,
+        colorscale=[[i / 4, c] for i, c in enumerate(seq)], hoverongaps=False,
+        hovertemplate="%{y} · %{x} : %{z:.1f}" + survol + "<extra></extra>"))
+    fig.add_trace(go.Heatmap(
+        z=np.where(np.isnan(zz), 0, np.nan), x=colonnes, y=lignes, xgap=3, ygap=3,
+        colorscale=[[0, t["seq-na"]], [1, t["seq-na"]]], showscale=False, hoverongaps=False,
+        hovertemplate="%{y} · %{x} : effectif trop faible<extra></extra>"))
+    for i, ligne in enumerate(lignes):
+        for j, col in enumerate(colonnes):
+            v = zz[i][j]
+            if np.isnan(v):
+                continue
+            # Cases foncées -> texte clair ; cases vives du mode sombre -> texte foncé
+            # Échelle séquentielle : sombre -> vive en mode sombre, claire -> foncée en clair
+            if scheme == "dark":
+                coul = t["bg-page"] if v > vmax * 0.85 else t["text-primary"]
+            else:
+                coul = t["on-image"] if v > vmax * 0.55 else t["text-primary"]
+            fig.add_annotation(x=col, y=ligne, text=fmt(v), showarrow=False,
+                               font=dict(size=12, color=coul))
+    return _base(fig, scheme, margin=dict(l=8, r=8, t=8, b=8),
+                 xaxis=dict(side="top", showline=False, ticks="",
+                            title=dict(text=titre_x, font=dict(size=12))),
+                 yaxis=dict(autorange="reversed", showgrid=False, ticks=""))
+
+
+def barres_100(annees, parts: dict[str, list], couleurs: dict[str, str], scheme: str) -> go.Figure:
+    """Barres empilées à 100 % par année ; étiquettes directes à droite (pas de légende)."""
+    t = tokens(scheme)
+    fig = go.Figure()
+    for nom, vals in parts.items():
+        fig.add_trace(go.Bar(
+            x=annees, y=vals, name=nom, marker_color=couleurs[nom], marker_line_width=0,
+            text=[fmt_pct(v, 0) if v >= 6 else "" for v in vals], textposition="inside",
+            insidetextanchor="middle", textfont=dict(size=11, color=t["on-image"]),
+            hovertemplate=f"{nom} · %{{x}} : %{{y:.1f}} %<extra></extra>"))
+    # Libellés hors du tracé, à droite, espacés d'au moins 7 points pour ne pas se chevaucher
+    cumul, positions = 0, []
+    for nom, vals in parts.items():
+        positions.append([nom, cumul + vals[-1] / 2])
+        cumul += vals[-1]
+    for i in range(1, len(positions)):
+        positions[i][1] = max(positions[i][1], positions[i - 1][1] + 7)
+    for nom, y in positions:
+        fig.add_annotation(**_annot(t, 1, min(y, 100), f"<b>{nom}</b>", couleurs[nom],
+                                    xref="paper", xanchor="left", xshift=8))
+    return _base(fig, scheme, barmode="stack", bargap=0.28, showlegend=False,
+                 margin=dict(l=8, r=150, t=8, b=8), xaxis=dict(dtick=1),
+                 yaxis=dict(range=[0, 100], ticksuffix=" %", showgrid=False))

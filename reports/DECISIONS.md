@@ -46,6 +46,15 @@ Format : décision — justification (une ligne).
 - Textes « Pour l'assureur » : aucune affirmation chiffrée hors données ; part des 2RM dans le trafic citée comme « À renseigner » (G8).
 - Liens des sources (page Méthode) : domaines officiels seulement (pas d'URL de jeu de données citée de mémoire).
 
+## Phase 4 — refonte visuelle demandée par le propriétaire
+- Cartes KPI épurées à la demande du propriétaire (« trop d'info ») : recto = libellé, valeur, UNE variation (vs N−1), mini-courbe ; la ligne leader passe au verso, la source en infobulle de la carte (elle reste sous chaque graphique et en page Méthode). Écart assumé à DESIGN §6.2 et §12 (touches 7 et 8).
+- Première carte de chaque rangée en « vedette » (fond encre) — hiérarchie visuelle, sans dégradé.
+- Mini-courbes : série décalée pour occuper la hauteur (Recharts part de zéro) ; seule la forme est lue, aucune valeur.
+- Nouveaux graphiques : courbe annotée année par année (creux / pic, variation annuelle), anneau de répartition par gravité (3 parts, G11), jauge en anneau, matrices route × lumière et mode × âge, boîtes à moustaches (âges des tués par mode ; dispersion des départements par année), barres 100 % par année (lieu des tués ; mode des tués avec la palette catégorielle `cat-1…6`, autorisée quand une comparaison exige plusieurs couleurs).
+- Carte : une seule grande carte avec bascule tués / victimes, projection conique conforme, classement des 10 premiers à côté (au lieu de deux cartes côte à côte).
+- Boîtes « âge des tués » : statistiques nationales précalculées dans le pipeline (non additives, G15), donc non filtrables par département (puce « France métropolitaine »).
+- Boîtes « dispersion des départements » : victimes pour 100 000 hab. (les tués par million seraient trop souvent masqués par le seuil, ce qui fausserait la distribution).
+
 ## Constats contraires aux hypothèses (G3)
 - Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,93 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.
 - Scène 04 : la létalité des 2RM (4,0 tués / 100 victimes) est inférieure à celle des occupants de voiture (4,9) ; c'est sur le taux de gravité que les 2RM ressortent.

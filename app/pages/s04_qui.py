@@ -111,6 +111,17 @@ def layout(**_):
                        "part des victimes ; taux de gravité = (tués + hospitalisés) / victimes ; "
                        "types sous 30 victimes exclus", hauteur=360),
         ]),
+        html.Div(className="grille-2", children=[
+            chart_card("s04-boites", "L'âge des tués selon le mode de déplacement",
+                       "Boîte = moitié centrale des âges ; trait = médiane ; losange = moyenne ; "
+                       "moustaches = valeurs usuelles.", da.SOURCE_BAAC,
+                       "âge au jour de l'accident des usagers tués ; France métropolitaine ; "
+                       "modes de moins de 30 tués exclus", hauteur=380),
+            chart_card("s04-matrice-age", "Mode × âge : la part des blessures graves",
+                       "Part des victimes tuées ou hospitalisées, par mode et tranche d'âge.",
+                       da.SOURCE_BAAC, "taux de gravité = (tués + hospitalisés) / victimes ; "
+                       "cases sous 30 victimes grisées", hauteur=380),
+        ]),
         insight(et_alors()),
         scene_nav(*voisines(NUM)),
     )
@@ -150,19 +161,21 @@ def kpis(filtres, scheme):
     # 1. Classe d'âge au taux de victimes graves le plus élevé
     if len(valides):
         pic = valides.loc[valides["taux"].idxmax()]
-        k1 = kpi_card("s04-k1", "Âge le plus exposé", "tabler:user-exclamation",
+        k1 = kpi_card("s04-k1", "Âge le plus exposé", "tabler:user-exclamation", vedette=True,
+                      valeur=
                       f"{str(pic['classe_age']).replace('-', '–')} ans", texte=True,
                       deltas=[{"texte": f"{fmt_number(pic['taux'], 0)} victimes graves "
                                         "/ 100 000 hab.", "sens": "neutre"}],
                       leader=("tabler:gender-bigender",
                               [f"{'Hommes' if pic['sexe_lib'] == 'Homme' else 'Femmes'}",
                                " de cette classe d'âge"]),
-                      lire="Classe d'âge et sexe où les blessures graves sont les plus "
-                           "fréquentes, rapportées à la population.",
+                      lire="Âge et sexe où les blessures graves par habitant sont les plus "
+                           "fréquentes.",
                       assureur="L'âge du conducteur reste un marqueur de gravité, pas seulement "
                                "de fréquence.", source=src)
     else:
-        k1 = kpi_card("s04-k1", "Âge le plus exposé", "tabler:user-exclamation", "—",
+        k1 = kpi_card("s04-k1", "Âge le plus exposé", "tabler:user-exclamation", vedette=True,
+                      valeur= "—",
                       lire="Effectifs trop faibles par classe d'âge sur ce périmètre.",
                       assureur="Élargir la période ou le territoire.", source=src,
                       indisponible=True)
@@ -178,8 +191,8 @@ def kpis(filtres, scheme):
                       th / pop.get("Homme") * 1e6, 0)), " tués / million"]) if ratio else None,
                   spark=s_ratio.tolist(),
                   lire="Taux de tués par habitant des hommes divisé par celui des femmes.",
-                  assureur="Le sexe, interdit en tarification depuis 2012, reste un fort "
-                           "marqueur de risque à expliquer par l'usage.", source=src,
+                  assureur="Le sexe, exclu des tarifs depuis 2012, reste un marqueur à "
+                           "expliquer par l'usage.", source=src,
                   indisponible=ratio is None)
 
     # 3. Part des 2RM parmi les tués
@@ -255,3 +268,64 @@ def graphes(filtres, scheme):
                                  type_en_tete(g), scheme, "Part des victimes",
                                  "Taux de gravité")
     return fig_age, puces, fig_m, puces, titre_age
+
+
+TRANCHES = {"0–14": ["0-4", "5-9", "10-14"], "15–24": ["15-19", "20-24"],
+            "25–34": ["25-29", "30-34"], "35–44": ["35-39", "40-44"],
+            "45–54": ["45-49", "50-54"], "55–64": ["55-59", "60-64"],
+            "65–74": ["65-69", "70-74"],
+            "75 +": ["75-79", "80-84", "85-89", "90-94", "95+"]}
+MODES_MATRICE = ["Piéton", "Vélo", "EDP", "2RM", "Voiture", "Utilitaire"]
+
+
+@callback(Output(graph_id("s04-boites"), "figure"), Output("s04-boites-puces", "children"),
+          Output("s04-boites-titre", "children"),
+          Output(graph_id("s04-matrice-age"), "figure"),
+          Output("s04-matrice-age-puces", "children"),
+          Output("s04-matrice-age-titre", "children"), *ENTREES)
+def boites_et_matrice(filtres, scheme):
+    periode, dep, scheme = lire(filtres, scheme)
+    # Boîtes : statistiques nationales précalculées (non additives), période choisie
+    b = da.table("s04_age_box")
+    lib = da.LIBELLE_PERIODE_CUMUL if periode == da.PERIODE_CUMUL else periode
+    b = b[(b["periode"] == lib) & (b["groupe"] == "Tués") & (b["type_usager"] != "Autre")]
+    ordre = [x for x in C.TYPE_USAGER_ORDRE if x in set(b["type_usager"])]
+    stats = [{"nom": r["type_usager"], **r.to_dict()} for _, r in
+             b.set_index("type_usager").loc[ordre].reset_index().iterrows()]
+    puces_b = [chip_filtre(f"France métropolitaine · {da.libelle_periode(periode)}")]
+    if stats:
+        vieux = max(stats, key=lambda s: s["mediane"])
+        jeune = min(stats, key=lambda s: s["mediane"])
+        fig_b = F.boites(stats, scheme, alerte=vieux["nom"])
+        titre_b = (f"Âge médian des tués : {fmt_number(vieux['mediane'], 0)} ans chez les "
+                   f"{'piétons' if vieux['nom'] == 'Piéton' else vieux['nom']}, "
+                   f"{fmt_number(jeune['mediane'], 0)} ans en {jeune['nom']}")
+    else:
+        fig_b = F.message_figure("Effectifs trop faibles", scheme)
+        titre_b = "L'âge des tués selon le mode de déplacement"
+    # Matrice mode × tranche d'âge (taux de gravité), filtrable
+    s = da.filtrer(da.table("s04_age"), periode, dep)
+    s = s.assign(classe=s["classe_age"].astype(str))
+    z, masque = [], []
+    for mode in MODES_MATRICE:
+        sm = s[s["type_usager"] == mode]
+        lz, lm = [], []
+        for cls in TRANCHES.values():
+            ss = sm[sm["classe"].isin(cls)][["graves", "victimes"]].sum()
+            lz.append(ss["graves"] / ss["victimes"] * 100 if ss["victimes"] else float("nan"))
+            lm.append(ss["victimes"] < SEUIL)
+        z.append(lz)
+        masque.append(lm)
+    puces_m = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
+    if all(all(lm) for lm in masque):
+        return (fig_b, puces_b, titre_b,
+                F.message_figure("Moins de 30 victimes par case", scheme), puces_m,
+                "Mode × âge : la part des blessures graves")
+    fig_m = F.matrice(MODES_MATRICE, list(TRANCHES), z, masque, scheme,
+                      fmt=lambda v: fmt_number(v, 0), titre_x="Âge (ans)",
+                      survol=" % de victimes graves")
+    vis = [(z[i][j], MODES_MATRICE[i], list(TRANCHES)[j]) for i in range(len(MODES_MATRICE))
+           for j in range(len(TRANCHES)) if not masque[i][j]]
+    v, mode, tr = max(vis)
+    titre_m = f"{mode}, {tr} ans : {fmt_pct(v, 0)} des victimes tuées ou hospitalisées"
+    return fig_b, puces_b, titre_b, fig_m, puces_m, titre_m

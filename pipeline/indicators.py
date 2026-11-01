@@ -84,10 +84,14 @@ def build_scenes(u: pd.DataFrame, acc: pd.DataFrame, pop: pd.DataFrame,
     out["s03_lum"] = agg_usagers(um, ["annee", "dep", "agg_lib", "lum_groupe"])
     out["s03_obs"] = agg_usagers(um, ["annee", "dep", "agg_lib", "obs_groupe"])
 
+    out["s03_matrice"] = agg_usagers(um, ["annee", "dep", "catr_groupe", "lum_groupe"])
+
     # Scène 04 : âge × sexe (avec population), casque des 2RM
     out["s04_age"] = agg_usagers(um, ["annee", "dep", "sexe_lib", "classe_age", "type_usager"])
     out["s04_casque"] = agg_usagers(um[um["type_usager"] == "2RM"],
                                     ["annee", "dep", "casque"])
+
+    out["s04_age_box"] = build_age_box(um)
 
     # Scène 05 : heatmap jour × heure
     hm_acc = agg_accidents(am, ["annee", "dep", "jour_semaine", "heure"])
@@ -107,6 +111,30 @@ def build_scenes(u: pd.DataFrame, acc: pd.DataFrame, pop: pd.DataFrame,
 
 
 PERIODE_CUMUL = f"{C.ANNEES[0]}–{C.ANNEES[-1]}"
+
+
+def build_age_box(um: pd.DataFrame) -> pd.DataFrame:
+    """Statistiques de boîte à moustaches de l'âge des tués et des victimes graves, par type
+    d'usager (France métropolitaine), pour le cumul et chaque année. Non additives : calculées
+    ici une fois pour toutes (G15). Groupes sous le seuil d'effectif exclus (G6)."""
+    lignes = []
+    base = um.dropna(subset=["age"])
+    for groupe, masque in (("Tués", base["tue"].fillna(False)),
+                           ("Victimes graves", base["grave"].fillna(False))):
+        d = base[masque.astype(bool)]
+        for periode, dd in [(PERIODE_CUMUL, d), *[(str(a), d[d["annee"] == a]) for a in C.ANNEES]]:
+            for type_u, ages in dd.groupby("type_usager", observed=True)["age"]:
+                if len(ages) < C.SEUIL_EFFECTIF:
+                    continue
+                q1, med, q3 = ages.quantile([0.25, 0.5, 0.75])
+                iqr = q3 - q1
+                lignes.append({
+                    "periode": periode, "groupe": groupe, "type_usager": str(type_u),
+                    "n": len(ages), "q1": q1, "mediane": med, "q3": q3,
+                    "moyenne": ages.mean(),
+                    "bas": ages[ages >= q1 - 1.5 * iqr].min(),
+                    "haut": ages[ages <= q3 + 1.5 * iqr].max()})
+    return pd.DataFrame(lignes)
 
 
 def build_territoires(um: pd.DataFrame, pop_dep: pd.DataFrame,

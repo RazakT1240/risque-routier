@@ -14,6 +14,7 @@ from app.components.format import delta, fmt_number, fmt_pct
 from app.components.kpi_card import kpi_card, kpi_row
 from app.components.scene_utils import ENTREES, SEUIL, deltas_annuels, fmt_ou_na, lire, par_annee
 from app.scenes import voisines
+from design.tokens import tokens
 from pipeline import config as C
 from pipeline.indicators import base_100
 
@@ -126,6 +127,10 @@ def layout(**_):
                    f"Victimes par type d'usager, indice base 100 en {A0}, même échelle.",
                    da.SOURCE_BAAC, f"victimes de l'année / victimes {A0} × 100 ; types sous 30 "
                    f"victimes en {A0} non affichés", hauteur=520),
+        chart_card("s06-modes", "Comment se répartissent les tués, année après année",
+                   "Part de chaque mode de déplacement parmi les tués, par année.",
+                   da.SOURCE_BAAC, "tués d'un mode / total des tués de l'année ; années sous 30 "
+                   "tués non affichées", hauteur=380),
         chart_card("s06-pareto", f"Quelques segments concentrent la gravité ({critere})",
                    "Segments type d'usager × agglomération, triés par poids décroissant ; ligne "
                    "= part cumulée.", da.SOURCE_BAAC,
@@ -145,13 +150,15 @@ def kpis(filtres, scheme):
     v = victimes_par_type(dep)
     src = f"Source : {da.SOURCE_BAAC} · {da.libelle_territoire(dep)}."
 
-    def carte_evol(kid, label, icon, serie, lire_txt, assureur, plus_est_mauvais=True):
+    def carte_evol(kid, label, icon, serie, lire_txt, assureur, plus_est_mauvais=True,
+                   vedette=False):
+        vedette = vedette or kid == "s06-k1"
         ev = evolution(serie, a1) if a1 > A0 else None
         if callable(assureur):
             assureur = assureur(ev)
         if ev is None:
             return kpi_card(kid, label, icon, "—", lire=lire_txt, assureur=assureur,
-                            source=src, indisponible=True)
+                            source=src, indisponible=True, vedette=vedette)
         return kpi_card(
             kid, label, icon, fmt_pct(ev, 1, signe=True),
             deltas=[delta(serie[a1], serie[a1 - 1], str(a1 - 1), plus_est_mauvais)]
@@ -159,7 +166,7 @@ def kpis(filtres, scheme):
             leader=("tabler:arrow-right", [f"{fmt_number(serie[A0])} en {A0} → ",
                                            html.B(fmt_number(serie[a1])), f" en {a1}"]),
             spark=base_100(serie, serie[A0]).tolist(), lire=lire_txt, assureur=assureur,
-            source=src)
+            source=src, vedette=vedette)
 
     s2rm = []
     for a in C.ANNEES:
@@ -181,8 +188,8 @@ def kpis(filtres, scheme):
                    "responsabilité civile."),
         carte_evol("s06-k3", f"Victimes vélo {A0} → {a1}", "tabler:bike", v.get("Vélo"),
                    "Évolution des victimes à vélo (y compris à assistance électrique).",
-                   "Un cycliste blessé par un véhicule est indemnisé par l'assureur de ce "
-                   "véhicule : un enjeu de responsabilité civile."),
+                   "Cycliste blessé : indemnisé par l'assureur du véhicule (responsabilité "
+                   "civile)."),
         kpi_card("s06-k4", f"Part des 2RM (tués) · {a1}", "tabler:motorbike",
                  fmt_ou_na(None if pd.isna(part2rm) else part2rm, 1, pct=True),
                  deltas=deltas_annuels(s2rm, str(a1), None, points=True)
@@ -221,3 +228,35 @@ def graphes(filtres, scheme):
                          g["cumul"].round(2).tolist(), SEUIL_PARETO, scheme)
     return (fig_m, [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)],
             fig_p, [chip_filtre(x) for x in da.puces_filtres(periode, dep)], titre_m)
+
+
+GROUPES_MODES = {"Voiture": ["Voiture"], "2RM": ["2RM"], "Piéton": ["Piéton"], "Vélo": ["Vélo"],
+                 "EDP": ["EDP"], "Autres": ["Utilitaire", "Poids lourd", "Bus, car, tram",
+                                            "Autre"]}
+
+
+@callback(Output(graph_id("s06-modes"), "figure"), Output("s06-modes-puces", "children"),
+          Output("s06-modes-titre", "children"), *ENTREES)
+def repartition_modes(filtres, scheme):
+    _, dep, scheme = lire(filtres, scheme)
+    g = da.filtrer(da.table("s02_gravite"), dep=dep, toutes_annees=True).pivot_table(
+        index="annee", columns="type_usager", values="tues", aggfunc="sum",
+        observed=True).reindex(C.ANNEES).fillna(0)
+    tot = g.sum(axis=1)
+    ok = tot >= SEUIL
+    puces = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
+    if ok.sum() < 2:
+        return (F.message_figure("Moins de 30 tués par an sur ce périmètre", scheme), puces,
+                "Répartition des tués par mode")
+    tk = tokens(scheme)
+    parts, couleurs = {}, {}
+    for i, (nom, types) in enumerate(GROUPES_MODES.items(), start=1):
+        cols = [c for c in types if c in g.columns]
+        parts[nom] = (g[cols].sum(axis=1) / tot * 100)[ok].round(1).tolist()
+        couleurs[nom] = tk[f"cat-{i}"]
+    annees = [int(a) for a in tot[ok].index]
+    fig = F.barres_100(annees, parts, couleurs, scheme)
+    premier = max(parts, key=lambda k: parts[k][-1])
+    titre_m = (f"{premier} : {fmt_pct(parts[premier][-1], 0)} des tués en {annees[-1]}, "
+               f"contre {fmt_pct(parts[premier][0], 0)} en {annees[0]}")
+    return fig, puces, titre_m

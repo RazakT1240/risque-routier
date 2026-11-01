@@ -4,7 +4,7 @@ Mode autonome (consigne du propriétaire) : G17 remplacé par une porte de quali
 (pytest, ruff, pipeline, app, recherche d'hexadécimaux, captures playwright, relecture par sous-agent,
 reports/phase-X.md, commit). Tous les autres garde-fous s'appliquent.
 
-## Phase en cours : 4 — Scènes
+## Phase en cours : 5 — Finitions et contrôle qualité
 
 ### Fait
 - Phase 0 : `.venv` (Python 3.13.9), requirements figés, .gitignore, git init, `pipeline/inventaire.py`
@@ -25,8 +25,14 @@ reports/phase-X.md, commit). Tous les autres garde-fous s'appliquent.
 - [x] 02 · 03 · 04 · 05 · 06 · 01 · 07 · 08 : écrites, un commit par scène
 - [x] QA filtres : sandbox/qa_filtres.py (8 pages × 5 filtres) sans erreur
 - [x] Captures reports/screens/phase-4/
-- [ ] Relecture sous-agent phase 4 (en cours) -> corrections
-- [ ] reports/phase-4.md + commit
+- [x] Relecture sous-agent phase 4 -> corrections
+- [x] Refonte visuelle demandée par le propriétaire
+- [x] reports/phase-4.md + commit
+
+### Reste (phase 5)
+- [ ] mesure des callbacks (< 300 ms), accessibilité, 1024 px
+- [ ] README.md, captures par scène dans reports/, SYNTHESE.md, phase-5.md (checklist §8)
+- [ ] relecture finale sous-agent, commit, app laissée sur :8050
 
 ### Serveur
 - App : `DASH_QA=1 .venv/Scripts/python app/app.py` -> http://127.0.0.1:8050 ; les nouvelles pages

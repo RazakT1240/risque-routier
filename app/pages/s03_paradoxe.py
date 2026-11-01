@@ -20,6 +20,7 @@ from app.components.format import fmt_number, fmt_pct, fmt_ratio
 from app.components.kpi_card import kpi_card, kpi_row
 from app.components.scene_utils import ENTREES, SEUIL, deltas_annuels, fmt_ou_na, lire
 from app.scenes import voisines
+from design.tokens import tokens
 from pipeline import config as C
 from pipeline.indicators import letalite
 
@@ -105,6 +106,19 @@ def layout(**_):
                        hauteur=320, controles=bascule("s03-vue", list(VUES),
                                                       "Vitesse autorisée", "Critère")),
         ]),
+        html.Div(className="grille-2-1", children=[
+            chart_card("s03-matrice", "Route × lumière : où une victime est le plus souvent tuée",
+                       "Tués pour 100 victimes, par type de route et conditions de lumière.",
+                       da.SOURCE_BAAC, "létalité = tués / victimes × 100 ; cases sous 30 "
+                       "victimes grisées", hauteur=360),
+            chart_card("s03-jauge", "Les tués hors agglomération",
+                       "Part des tués dont l'accident a eu lieu hors agglomération.",
+                       da.SOURCE_BAAC, "tués hors agglomération / total des tués", hauteur=300),
+        ]),
+        chart_card("s03-annees", "Tués selon le lieu, par année",
+                   "Répartition des tués entre agglomération et hors agglomération, par année.",
+                   da.SOURCE_BAAC, "part des tués selon le lieu de l'accident ; années sous 30 "
+                   "tués non affichées", hauteur=320),
         insight(et_alors()),
         scene_nav(*voisines(NUM)),
     )
@@ -154,14 +168,15 @@ def kpis(filtres, scheme):
 
     src = f"Source : {da.SOURCE_BAAC} · {da.libelle_territoire(dep)}."
     return kpi_row([
-        kpi_card("s03-k1", f"Accidents en agglo. · {da.libelle_periode(periode)}",
+        kpi_card("s03-k1", "Accidents en agglomération",
                  "tabler:building-community", fmt_ou_na(part_acc_en, 1, pct=True),
+                 vedette=True,
                  deltas=deltas_annuels(p_acc, periode, None, points=True), leader=leader_part(
                      route_acc, "accidents"), spark=p_acc.tolist(),
                  lire="Part des accidents corporels survenus en agglomération.",
                  assureur="La fréquence se concentre en ville : c'est là que les sinistres "
                           "sont nombreux.", source=src, indisponible=part_acc_en is None),
-        kpi_card("s03-k2", f"Tués hors agglo. · {da.libelle_periode(periode)}", "tabler:trees",
+        kpi_card("s03-k2", "Tués hors agglomération", "tabler:trees",
                  fmt_ou_na(part_tues_hors, 1, pct=True),
                  deltas=deltas_annuels(p_tues, periode, None, points=True),
                  leader=leader_part(route_tues, "tués"), spark=p_tues.tolist(),
@@ -169,7 +184,7 @@ def kpis(filtres, scheme):
                  assureur="La gravité se concentre hors des villes : c'est là que se joue le "
                           "coût des sinistres lourds.", source=src,
                  indisponible=part_tues_hors is None),
-        kpi_card("s03-k3", f"Létalité hors agglo. · {da.libelle_periode(periode)}",
+        kpi_card("s03-k3", "Létalité hors agglomération",
                  "tabler:alert-triangle", fmt_ou_na(let_hors, 1),
                  deltas=deltas_annuels(s_let, periode, points=True) if let_hors else [],
                  leader=leader_lum, spark=s_let.tolist(),
@@ -234,3 +249,71 @@ def letalite_par(vue, filtres, scheme):
                                titre_x="Vitesse maximale autorisée (km/h)" if col == "vma"
                                else None), puces
 
+
+
+LUM_COURT = {"Jour": "Jour", "Aube ou crépuscule": "Aube, crépuscule",
+             "Nuit éclairée": "Nuit éclairée", "Nuit non éclairée": "Nuit sans éclairage"}
+
+
+@callback(Output(graph_id("s03-matrice"), "figure"), Output("s03-matrice-puces", "children"),
+          Output("s03-matrice-titre", "children"),
+          Output(graph_id("s03-jauge"), "figure"), Output("s03-jauge-puces", "children"),
+          Output(graph_id("s03-annees"), "figure"), Output("s03-annees-titre", "children"),
+          Output("s03-annees-puces", "children"), *ENTREES)
+def matrice_jauge_annees(filtres, scheme):
+    periode, dep, scheme = lire(filtres, scheme)
+    puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
+    # Matrice route × lumière
+    m = da.filtrer(da.table("s03_matrice"), periode, dep).groupby(
+        ["catr_groupe", "lum_groupe"], observed=True)[["tues", "victimes"]].sum()
+    routes = [r for r in C.CATR_GROUPE_ORDRE if r != "Autre"]
+    lums = C.LUM_GROUPE_ORDRE
+    z, masque = [], []
+    for r in routes:
+        ligne_z, ligne_m = [], []
+        for lu in lums:
+            tv = m.loc[(r, lu)] if (r, lu) in m.index else None
+            v = tv["victimes"] if tv is not None else 0
+            ligne_z.append(letalite(tv["tues"], v) if v else float("nan"))
+            ligne_m.append(v < SEUIL)
+        z.append(ligne_z)
+        masque.append(ligne_m)
+    if all(all(lm) for lm in masque):
+        fig_m = F.message_figure("Moins de 30 victimes par case : létalité non affichée", scheme)
+        titre_m = "Route × lumière : létalité"
+    else:
+        fig_m = F.matrice(routes, [LUM_COURT[x] for x in lums], z, masque, scheme,
+                          survol=" tués / 100 victimes")
+        vis = [(z[i][j], routes[i], lums[j]) for i in range(len(routes)) for j in range(len(lums))
+               if not masque[i][j]]
+        v, r, lu = max(vis)
+        titre_m = (f"{r}, {LUM_COURT[lu].lower()} : {fmt_number(v, 1)} tués pour 100 victimes")
+    # Jauge : part des tués hors agglomération
+    usa = da.filtrer(da.table("s02_gravite"), periode, dep).groupby("agg_lib")["tues"].sum()
+    if usa.sum() < SEUIL:
+        fig_j = F.message_figure("Moins de 30 tués sur ce périmètre", scheme)
+    else:
+        fig_j = F.anneau_jauge(usa.get("Hors agglomération", 0) / usa.sum() * 100,
+                               "des tués, hors agglomération", scheme)
+    # Barres 100 % par année
+    g = da.filtrer(da.table("s02_gravite"), dep=dep, toutes_annees=True).pivot_table(
+        index="annee", columns="agg_lib", values="tues", aggfunc="sum").reindex(C.ANNEES).fillna(0)
+    tot = g.sum(axis=1)
+    ok = tot >= SEUIL
+    tk = tokens(scheme)
+    if ok.sum() < 2:
+        fig_a = F.message_figure("Moins de 30 tués par an sur ce périmètre", scheme)
+        titre_a = "Tués selon le lieu, par année"
+    else:
+        hors = (g["Hors agglomération"] / tot * 100)[ok]
+        en = (g["En agglomération"] / tot * 100)[ok]
+        fig_a = F.barres_100([int(a) for a in hors.index],
+                             {"Hors agglomération": hors.round(1).tolist(),
+                              "En agglomération": en.round(1).tolist()},
+                             {"Hors agglomération": tk["grav-tue"],
+                              "En agglomération": tk["data-neutre"]}, scheme)
+        lo, hi = hors.min(), hors.max()
+        titre_a = (f"Hors agglomération, {fmt_pct(lo, 0)} à {fmt_pct(hi, 0)} des tués selon "
+                   "l'année")
+    p_toutes = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
+    return fig_m, puces, titre_m, fig_j, puces, fig_a, titre_a, p_toutes

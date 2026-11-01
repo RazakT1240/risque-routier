@@ -25,6 +25,13 @@ LIGHT = {
     "seq-na": "#E4E1DA",
     "accent-soft": "rgba(224,161,0,.12)",
     "focus-ring": "#8A6100",
+    "delta-baisse-soft": "rgba(47,125,92,.12)",
+    "delta-hausse-soft": "rgba(179,38,30,.10)",
+    "vedette-bg": "#1B1F24",
+    "vedette-text": "#FFFFFF",
+    "vedette-muted": "#A6AEB9",
+    "vedette-hausse": "#EE6266",
+    "vedette-baisse": "#3FA37A",
     "on-image": "#FFFFFF",
 }
 DARK = {
@@ -47,6 +54,13 @@ DARK = {
     "seq-na": "#232A33",
     "accent-soft": "rgba(242,183,5,.12)",
     "focus-ring": "#F2B705",
+    "delta-baisse-soft": "rgba(63,163,122,.16)",
+    "delta-hausse-soft": "rgba(238,98,102,.16)",
+    "vedette-bg": "#232B36",
+    "vedette-text": "#ECEEF1",
+    "vedette-muted": "#A6AEB9",
+    "vedette-hausse": "#EE6266",
+    "vedette-baisse": "#3FA37A",
     "on-image": "#FFFFFF",
 }
 SEQ = {

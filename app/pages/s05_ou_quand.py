@@ -29,8 +29,9 @@ dash.register_page(__name__, path="/ou-quand", name="Où et quand", order=5,
                    title="Où et quand · Risque routier")
 NUM = 5
 CUMUL = da.LIBELLE_PERIODE_CUMUL
-CARTES = {"s05-carte-vict": ("taux_victimes_100k", "victimes pour 100 000 hab."),
-          "s05-carte-tues": ("taux_tues_million", "tués par million d'hab.")}
+INDICATEURS = {"Tués par million": ("taux_tues_million", "tués par million d'hab.", "tués"),
+               "Victimes pour 100 000": ("taux_victimes_100k", "victimes pour 100 000 hab.",
+                                         "victimes")}
 METEO_LIB = {"pluie faible": "Pluie faible (0,2 à 5 mm)", "pluie forte": "Pluie forte (≥ 5 mm)",
              "gel": "Gel", "premiere_pluie": "Première pluie après 7 jours secs"}
 
@@ -110,20 +111,23 @@ def legende(bornes, unite, avec_masques: bool):
 
 def layout(**_):
     debut, accent = titre()
-    carte = lambda nom, titre_c, sous: chart_card(  # noqa: E731
-        nom, titre_c, sous, f"{da.SOURCE_BAAC} ; {da.SOURCE_INSEE}",
-        f"{CARTES[nom][1]}, cumul {CUMUL} (somme des populations annuelles) ; 5 classes par "
-        "quantiles ; clic = filtrer le département", hauteur=420, mobile=True,
-        legende=html.Div(id=f"{nom}-legende"))
     return scene_layout(
         scene_header(NUM, "Où et quand", debut, accent, chapeau()),
         html.Div(id="s05-kpis"),
-        html.Div(className="grille-2", children=[
-            carte("s05-carte-vict", titre_carte("taux_victimes_100k", "victimes"),
-                  "Victimes pour 100 000 habitants et par an."),
-            carte("s05-carte-tues", titre_carte("taux_tues_million", "tués"),
-                  "Tués par million d'habitants et par an."),
-        ]),
+        chart_card("s05-carte", titre_carte("taux_tues_million", "tués"),
+                   "Taux par habitant et par an, cumul 2019–2025 ; cliquez un département pour "
+                   "filtrer toute l'application.", f"{da.SOURCE_BAAC} ; {da.SOURCE_INSEE}",
+                   f"taux cumulés {CUMUL} (somme des populations annuelles) ; 5 classes par "
+                   "quantiles", hauteur=440, mobile=True,
+                   controles=bascule("s05-indicateur", list(INDICATEURS), "Tués par million",
+                                     "Indicateur de la carte"),
+                   legende=html.Div(id="s05-carte-legende"),
+                   aside=html.Div(id="s05-classement")),
+        chart_card("s05-boites", "Dispersion des départements, année par année",
+                   "Victimes pour 100 000 habitants : chaque point est un département ; la ligne "
+                   "ambre suit le département filtré.", f"{da.SOURCE_BAAC} ; {da.SOURCE_INSEE}",
+                   "victimes / population de l'année × 100 000 ; départements sous 30 victimes "
+                   "exclus de l'année", hauteur=380),
         html.Div(className="grille-2", children=[
             chart_card("s05-heatmap", "Accidents et létalité selon le jour et l'heure",
                        "Jour de la semaine × heure de l'accident ; plus la case est foncée, plus "
@@ -154,14 +158,13 @@ def kpis(filtres, scheme):
 
     def carte_dep(kid, label, icon, ligne, rang_txt):
         return kpi_card(
-            kid, label, icon, ligne["nom_dep"], texte=True,
+            kid, label, icon, ligne["nom_dep"], texte=True, vedette=kid == "s05-k1",
             deltas=[{"texte": f"{fmt_number(ligne['taux_tues_million'], 0)} tués / million "
                               "d'hab. et par an", "sens": "neutre"}],
             leader=("tabler:map-pin", [rang_txt, html.B(ligne["dep"])]),
-            lire=f"Tués rapportés à la population, cumulés sur {CUMUL} pour que chaque "
-                 "département dépasse le seuil d'effectif.",
-            assureur="Le risque mortel par habitant varie fortement d'un département à "
-                     "l'autre : un argument pour un zonage fondé sur la gravité.", source=src_t)
+            lire=f"Tués par habitant, cumulés sur {CUMUL} pour dépasser le seuil d'effectif.",
+            assureur="Un fort écart entre départements : un argument pour zoner par la "
+                     "gravité.", source=src_t)
 
     g = creneaux(periode, dep)
     # Tranches de 3 h : une case jour × heure seule est trop bruitée pour un KPI
@@ -178,10 +181,9 @@ def kpis(filtres, scheme):
             deltas=[{"texte": f"{fmt_number(let.max(), 1)} tués / 100 victimes", "sens": "neutre"}],
             leader=("tabler:chart-dots", ["Moyenne : ", html.B(fmt_number(letalite(
                 tot["tues"], tot["victimes"]), 1))]),
-            lire="Tranche de 3 heures où une victime est le plus souvent tuée (tranches d'au "
-                 "moins 30 victimes).",
-            assureur="Les heures de conduite comptent : un levier pour les offres à l'usage et "
-                     "la prévention ciblée.",
+            lire="Tranche de 3 h où une victime est le plus souvent tuée (au moins 30 "
+                 "victimes).",
+            assureur="L'heure de conduite compte : un levier pour les offres à l'usage.",
             source=f"Source : {da.SOURCE_BAAC} · {da.libelle_territoire(dep)}.")
     if k3 is None:
         k3 = kpi_card("s05-k3", "Créneau le plus létal", "tabler:clock", "—",
@@ -197,9 +199,9 @@ def kpis(filtres, scheme):
                           f"{fmt_number(pp['ic_haut'], 2)}", "sens": "neutre"}],
         leader=("tabler:info-circle", ["Effet ", html.B("significatif" if sig else
                                                         "non significatif")]),
-        lire="Surcroît d'accidents un premier jour de pluie après au moins 7 jours secs, à "
-             "département, mois, année et jour de semaine égaux.",
-        assureur="Un effet faible ou nul : la météo seule ne justifie pas une alerte dédiée.",
+        lire="Surcroît d'accidents le 1er jour de pluie après 7 jours secs, toutes choses "
+             "égales par ailleurs.",
+        assureur="Effet faible ou nul : la météo seule ne justifie pas d'alerte dédiée.",
         source=f"Source : modèle GLM national {CUMUL} ({da.SOURCE_BAAC} ; Météo-France).")
     return kpi_row([
         carte_dep("s05-k1", "Taux de tués maximal", "tabler:trending-up", haut,
@@ -209,8 +211,35 @@ def kpis(filtres, scheme):
         k3, k4])
 
 
-def _cartes(nom, dep, scheme):
-    col, unite = CARTES[nom]
+def classement(t: pd.DataFrame, col: str, unite: str, dep: str):
+    d = t.dropna(subset=[col]).sort_values(col, ascending=False).reset_index(drop=True)
+    vmax = d[col].max()
+    lignes = []
+    for i, r in d.head(10).iterrows():
+        lignes.append(html.Div(className="classement-ligne" + (" premier" if i == 0 else ""),
+                               children=[
+            html.Span(str(i + 1), className="classement-rang"),
+            html.Div([html.Div(r["nom_dep"], className="classement-nom"),
+                      html.Div(className="classement-barre", children=html.Span(
+                          style={"width": f"{r[col] / vmax * 100:.0f}%"}))]),
+            html.Span(fmt_number(r[col], 0), className="classement-val")]))
+    bas = []
+    if dep != da.TERRITOIRE_FRANCE and dep in set(d["dep"]):
+        rang = int(d.index[d["dep"] == dep][0]) + 1
+        bas = [html.Div(className="caption", style={"marginTop": 12}, children=[
+            f"{da.noms_departements().get(dep, dep)} : rang {rang} sur {len(d)} ("
+            f"{fmt_number(d.loc[rang - 1, col], 0)} {unite})"])]
+    return [html.Div(f"Les 10 taux les plus élevés · {unite}", className="aside-titre"),
+            html.Div(lignes, className="classement"), *bas]
+
+
+@callback(Output(graph_id("s05-carte"), "figure"), Output(graph_id("s05-carte-mobile"), "figure"),
+          Output("s05-carte-legende", "children"), Output("s05-carte-puces", "children"),
+          Output("s05-classement", "children"), Output("s05-carte-titre", "children"),
+          Input(bascule_id("s05-indicateur"), "value"), *ENTREES)
+def carte(indicateur, filtres, scheme):
+    _, dep, scheme = lire(filtres, scheme)
+    col, unite, quoi = INDICATEURS.get(indicateur or "Tués par million")
     t = territoires()
     sel = dep if dep != da.TERRITOIRE_FRANCE else None
     fig, bornes = F.choroplethe(da.geojson(), t["dep"].tolist(), t["nom_dep"].tolist(),
@@ -219,37 +248,46 @@ def _cartes(nom, dep, scheme):
     puces = [chip_filtre(f"{CUMUL} cumulé")]
     if sel:
         puces.append(chip_filtre(f"Filtre : {da.noms_departements().get(dep, dep)}",
-                                 {"type": "s05-effacer", "index": nom}, effacable=True))
-    return fig, mob, legende(bornes, f"{unite[0].upper()}{unite[1:]} :",
-                             bool(t[col].isna().any())), puces
-
-
-@callback(Output(graph_id("s05-carte-vict"), "figure"),
-          Output(graph_id("s05-carte-vict-mobile"), "figure"),
-          Output("s05-carte-vict-legende", "children"), Output("s05-carte-vict-puces", "children"),
-          Output(graph_id("s05-carte-tues"), "figure"),
-          Output(graph_id("s05-carte-tues-mobile"), "figure"),
-          Output("s05-carte-tues-legende", "children"), Output("s05-carte-tues-puces", "children"),
-          *ENTREES)
-def cartes(filtres, scheme):
-    _, dep, scheme = lire(filtres, scheme)
-    return (*_cartes("s05-carte-vict", dep, scheme), *_cartes("s05-carte-tues", dep, scheme))
+                                 {"type": "s05-effacer", "index": "carte"}, effacable=True))
+    leg = legende(bornes, f"{unite[0].upper()}{unite[1:]} :", bool(t[col].isna().any()))
+    return fig, mob, leg, puces, classement(t, col, unite, dep), titre_carte(col, quoi)
 
 
 @callback(Output("filtre-territoire", "value", allow_duplicate=True),
-          Input(graph_id("s05-carte-vict"), "clickData"),
-          Input(graph_id("s05-carte-tues"), "clickData"),
+          Input(graph_id("s05-carte"), "clickData"),
           Input({"type": "s05-effacer", "index": dash.ALL}, "n_clicks"),
           prevent_initial_call=True)
-def filtrer_par_clic(clic_v, clic_t, effacer):
+def filtrer_par_clic(clic, effacer):
     declencheur = ctx.triggered_id
     if isinstance(declencheur, dict) and declencheur.get("type") == "s05-effacer":
         return da.TERRITOIRE_FRANCE if any(effacer) else no_update
-    clic = clic_v if declencheur == graph_id("s05-carte-vict") else clic_t
     try:
         return clic["points"][0]["location"]
     except (TypeError, KeyError, IndexError):
         return no_update
+
+
+@callback(Output(graph_id("s05-boites"), "figure"), Output("s05-boites-puces", "children"),
+          Output("s05-boites-titre", "children"), *ENTREES)
+def boites_annuelles(filtres, scheme):
+    _, dep, scheme = lire(filtres, scheme)
+    t = da.table("ind_territoires")
+    t = t[t["periode"] != CUMUL].assign(annee=lambda d: d["periode"].astype(int))
+    par_an = {a: d["taux_victimes_100k"].dropna().tolist() for a, d in t.groupby("annee")}
+    sel = None
+    if dep != da.TERRITOIRE_FRANCE:
+        sd = t[t["dep"] == dep].set_index("annee")["taux_victimes_100k"]
+        sel = {int(a): (None if pd.isna(v) else float(v)) for a, v in sd.items()}
+    fig = F.boites_annuelles(C.ANNEES, par_an, scheme, "victimes / 100 000 hab.", selection=sel)
+    q = {a: np.percentile(v, [25, 75]) for a, v in par_an.items() if len(v) >= 4}
+    ecarts = [hi / lo for lo, hi in q.values() if lo > 0]
+    titre_b = ("D'une année à l'autre, l'écart entre départements demeure"
+               if ecarts and max(ecarts) / min(ecarts) < 1.3 else
+               "L'écart entre départements varie selon les années")
+    puces = [chip_filtre("Toutes années")]
+    if dep != da.TERRITOIRE_FRANCE:
+        puces.append(chip_filtre(f"En ambre : {da.noms_departements().get(dep, dep)}"))
+    return fig, puces, titre_b
 
 
 @callback(Output(graph_id("s05-heatmap"), "figure"),

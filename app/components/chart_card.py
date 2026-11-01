@@ -47,7 +47,7 @@ def chip_filtre(texte: str, chip_id: dict | str | None = None, effacable: bool =
 def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *,
                figure=None, hauteur: int = 340, puces: list | None = None,
                controles=None, corps=None, aria: str | None = None,
-               mobile: bool = False, legende=None) -> html.Section:
+               mobile: bool = False, legende=None, aside=None) -> html.Section:
     """`corps` remplace le graphique (ex. message « effectif trop faible »).
     `mobile=True` ajoute un second graphique `<nom>-mobile` affiché sous 768 px (DESIGN §10),
     le principal étant alors masqué sur mobile. `legende` s'affiche sous le graphique."""
@@ -56,6 +56,10 @@ def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *
         type="dot", delay_show=300, color="var(--accent)",
         children=dcc.Graph(id=graph_id(nom), figure=figure or FIGURE_VIDE, config=GRAPH_CONFIG,
                            style={"height": f"{hauteur}px"}, className="chart-graph"))
+    if aside is not None:
+        graphe = html.Div(className="graphe-aside", children=[
+            html.Div(graphe, style={"minWidth": 0}),
+            html.Div(aside, className="visible-desktop aside-panneau")])
     if avec_graphe and mobile:
         graphe = html.Div([
             html.Div(graphe, className="visible-desktop"),

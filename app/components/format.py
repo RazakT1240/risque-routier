@@ -61,7 +61,8 @@ def delta_points(valeur, reference, libelle: str, plus_est_mauvais: bool | None 
         return {"texte": f"{NA} vs {libelle}", "sens": "neutre"}
     v = round(valeur - reference, decimals)
     if v == 0:
-        return {"texte": f"= vs {libelle}", "sens": "neutre"}
+        return {"texte": f"= {fmt_number(0, decimals)}{INSECABLE}pt vs {libelle}",
+                "sens": "neutre"}
     fleche = "▲" if v > 0 else "▼"
     texte = f"{fleche} {fmt_number(v, decimals, signe=True)}{INSECABLE}pt vs {libelle}"
     if plus_est_mauvais is None:

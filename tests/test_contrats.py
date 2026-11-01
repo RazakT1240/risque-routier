@@ -12,7 +12,7 @@ pytestmark = pytest.mark.skipif(not (C.PROCESSED / "usagers_enrichis.parquet").e
 
 DEP_REGEX = r"0[1-9]|1\d|[3-8]\d|9[0-5]|2[1-9]|2[AB]|97[1-8]|98[678]"
 AGREGATS = ["pop_dep", "s02_gravite", "s02_accidents", "s03_vma", "s03_lum", "s03_obs",
-            "s04_age", "s04_casque", "s05_heatmap", "ind_parc", "s08_donnees"]
+            "s04_age", "s04_casque", "s05_heatmap", "ind_parc", "s08_donnees", "s03_matrice"]
 
 
 def read(name: str) -> pd.DataFrame:
@@ -160,3 +160,10 @@ def test_modeles_json():
     for name in ("meteo.json", "simulateur.json"):
         obj = json.loads((C.MODELS / name).read_text(encoding="utf-8"))
         assert obj["n_obs"] > 0
+
+
+def test_boites_age():
+    b = read("s04_age_box")
+    assert (b["n"] >= C.SEUIL_EFFECTIF).all()
+    assert ((b["bas"] <= b["q1"]) & (b["q1"] <= b["mediane"]) & (b["mediane"] <= b["q3"])
+            & (b["q3"] <= b["haut"])).all()
