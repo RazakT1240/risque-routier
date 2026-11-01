@@ -1,0 +1,17 @@
+# Données (G16) : brutes et dérivées, jamais dans git
+data/
+
+# Environnement et caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Dossier local du propriétaire, hors projet
+_to_delete/
+
+# Système
+.DS_Store
+Thumbs.db

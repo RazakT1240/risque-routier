@@ -1,0 +1,42 @@
+CONCOURS DATAVIZ - INSTITUT DES ACTUAIRES
+Données téléchargées le 01/11/2026
+
+data/baac/<année>/   Bases BAAC (ONISR, data.gouv.fr) 2019 à 2025
+   caract-AAAA.csv     1 ligne / accident (date, heure, lum, dep, agg, atm, GPS)
+   lieux-AAAA.csv      route (catr, vma, surf...) - ATTENTION doublons de Num_Acc
+   vehicules-AAAA.csv  1 ligne / véhicule (catv...)
+   usagers-AAAA.csv    1 ligne / usager (grav, an_nais, sexe, secu...)
+   Format : séparateur ";", décimales "," pour lat/long, UTF-8
+   Pièges connus :
+   - 2022 : la clé s'appelle "Accident_Id" dans caract (et Num_Acc ailleurs) -> renommer
+   - 2019-2020 : usagers n'a pas de colonne id_usager
+   - 2025 : en-tête de vehicules-2025.csv coupé sur 2 lignes (retour à la ligne après id_vehicule)
+   - Codes département sans zéro initial ("1" au lieu de "01") certaines années -> compléter à 2 caractères
+   - Format homogène depuis 2019 ; ne pas empiler avec 2005-2018 sans harmonisation
+
+data/meteo/          Météo-France, données climatologiques quotidiennes (data.gouv.fr)
+   meteo_dep_jour_2019_2025.csv  1 ligne / département / jour (agrégé depuis les stations)
+      rr_moy_mm, part_stations_pluie_1mm, tn_moy, tn_min, tx_moy, part_stations_gel, fxi_max_ms, n_stations_rr
+   meteo_stations_2019_2025_partN.csv.gz  détail par station (GPS, RR, TN, TX, TM, FFM, FXI)
+   Corse codée "20" (BAAC : 2A/2B) ; Mayotte (976) absente
+
+data/geo/            Contours des départements (github.com/gregoiredavid/france-geojson)
+   departements-version-simplifiee.geojson  métropole, 96 dép., léger -> à utiliser pour la carte
+   departements.geojson                     métropole, tracé précis
+   departements-avec-outre-mer.geojson      101 dép. dont DROM
+   Clé : propriété "code" (01..95, 2A, 2B) = dep des BAAC
+
+data/insee/           INSEE, estimations de population au 1er janvier, 1975-2026 (1 onglet par année)
+   insee_estim-pop-dep-sexe-aq-...xlsx   par département, sexe, âge quinquennal (0-4, 5-9 ... 95+)
+   insee_estim-pop-dep-sexe-gca-...xlsx  par département, sexe, grandes classes d'âge
+   En-têtes sur 5 lignes : lire à partir de la ligne 6 ; colonnes Ensemble / Hommes / Femmes
+
+data/sdes/            SDES, parc de véhicules en circulation au 1er janvier 2019-2026
+   sdes_parc_vehicules_dep_2019_2026.csv  agrégé par dep x carburant x statut x groupe x catégorie
+   Groupes : VP (voitures), VUL (utilitaires), PL (poids lourds), TCP (bus/cars)
+   ATTENTION : pas de deux-roues motorisés dans cette base ; dep "00" = commune inconnue
+
+docs/                Notices officielles (BAAC, champs météo)
+
+Rappel règlement : ne déposer que le HTML (+ notice PDF) et le code ; les données externes
+doivent être chargées par le code.

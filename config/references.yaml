@@ -1,0 +1,10 @@
+# Valeurs externes : à renseigner À LA MAIN depuis les bilans ONISR (garde-fou G8).
+# Tant qu'une valeur vaut null, l'application affiche « À renseigner » au lieu d'un nombre.
+valeurs_tutelaires_eur:        # coût socio-économique unitaire, par gravité
+  tue: null
+  blesse_hospitalise: null
+  blesse_leger: null
+  annee_reference: null
+  source: null                 # titre + URL du bilan ONISR utilisé
+part_trafic_2rm_pct: null      # part des deux-roues motorisés dans le trafic (national)
+part_trafic_2rm_source: null
