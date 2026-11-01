@@ -12,7 +12,7 @@
   --accent-soft:rgba(224,161,0,.12);--focus-ring:#8A6100;
   --delta-baisse-soft:rgba(47,125,92,.12);--delta-hausse-soft:rgba(179,38,30,.10);
   --vedette-bg:#1B1F24;--vedette-text:#FFFFFF;--vedette-muted:#A6AEB9;--vedette-hausse:#EE6266;--vedette-baisse:#3FA37A;
-  --on-image:#FFFFFF;
+  --on-image:#FFFFFF;--on-accent:#1B1F24;
   --hero-voile:linear-gradient(180deg,rgba(14,18,23,.15),rgba(14,18,23,.75));
   --shadow-hover:0 4px 16px rgba(0,0,0,.06);
   --font-serif:Fraunces,Georgia,serif;--font-sans:Inter,system-ui,sans-serif;
@@ -30,7 +30,7 @@
   --accent-soft:rgba(242,183,5,.12);--focus-ring:#F2B705;
   --delta-baisse-soft:rgba(63,163,122,.16);--delta-hausse-soft:rgba(238,98,102,.16);
   --vedette-bg:#232B36;--vedette-text:#ECEEF1;--vedette-muted:#A6AEB9;--vedette-hausse:#EE6266;--vedette-baisse:#3FA37A;
-  --shadow-hover:none;
+  --shadow-hover:none;--on-accent:#0E1217;
 }
 
 /* Mantine déclare ses variables sous :root[data-mantine-color-scheme=…] (spécificité 0,2,0) :
@@ -423,3 +423,47 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 
 /* Focus clavier sur la carte vedette : double anneau, distinct du liseré ambre */
 .kpi-vedette.kpi-flip:focus-visible .kpi-face{box-shadow:0 0 0 2px var(--bg-page),0 0 0 4px var(--focus-ring)}
+
+/* ------------------------------------------------------------------ */
+/* Assistant (RAG ancré) : bouton flottant + tiroir de questions      */
+/* ------------------------------------------------------------------ */
+.assistant-fab{position:fixed;right:24px;bottom:24px;z-index:350;display:inline-flex;
+  align-items:center;gap:8px;height:48px;padding:0 20px;border:0;border-radius:999px;cursor:pointer;
+  background:var(--accent);color:var(--on-accent);font:600 14px/1 var(--font-sans);
+  box-shadow:var(--shadow-hover)}
+.assistant-fab:hover{filter:brightness(1.05)}
+.assistant-fab:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg-page),0 0 0 4px var(--focus-ring)}
+@media (max-width:767px){.assistant-fab{right:16px;bottom:16px;padding:0;width:48px;justify-content:center}
+  .assistant-fab-texte{display:none}}
+
+.assistant-corps{display:flex;flex-direction:column;gap:14px}
+.assistant-intro{margin:0}
+.assistant-go{flex:0 0 auto;width:40px;height:40px;border:0;border-radius:var(--radius-sm);cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;background:var(--accent);
+  color:var(--on-accent)}
+.assistant-go:focus-visible{outline:none;box-shadow:0 0 0 2px var(--bg-surface),0 0 0 4px var(--focus-ring)}
+.assistant-sous-titre{font:600 11px/15px var(--font-sans);letter-spacing:.07em;text-transform:uppercase;
+  color:var(--text-secondary)}
+.assistant-exemples{display:flex;flex-wrap:wrap;gap:8px}
+.assistant-puce{border:1px solid var(--border);background:var(--bg-subtle);color:var(--text-secondary);
+  border-radius:999px;padding:5px 12px;font:500 12px/16px var(--font-sans);cursor:pointer;text-align:left}
+.assistant-puce:hover{border-color:var(--accent);color:var(--accent-text)}
+.assistant-puce:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-ring)}
+.assistant-reponses{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+.assistant-compteur{font:500 12px/16px var(--font-sans);color:var(--text-muted)}
+.assistant-fiche{border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:0 var(--radius-md) var(--radius-md) 0;background:var(--bg-subtle);padding:14px 16px;
+  display:flex;flex-direction:column;gap:6px}
+.assistant-fiche-titre{font:600 13px/18px var(--font-sans);color:var(--text-secondary)}
+.assistant-fiche-rep{margin:0;font:400 15px/23px var(--font-sans);color:var(--text-primary)}
+.assistant-fiche-pied{display:flex;justify-content:space-between;align-items:center;gap:12px;
+  flex-wrap:wrap;margin-top:2px}
+.assistant-lien{display:inline-flex;align-items:center;gap:4px;font:600 12px/16px var(--font-sans);
+  color:var(--accent-text);text-decoration:none;white-space:nowrap}
+.assistant-lien:hover{text-decoration:underline}
+.assistant-lien:focus-visible{outline:none;box-shadow:0 0 0 2px var(--focus-ring);border-radius:3px}
+.assistant-vide{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
+  padding:20px;border:1px dashed var(--border);border-radius:var(--radius-md)}
+.assistant-vide .caption{max-width:34ch}
+.assistant-graph{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+  padding:4px 6px}

@@ -11,7 +11,11 @@
   plus de trente graphiques (courbes annotées, anneaux, jauges, matrices, boîtes à moustaches, radar, rose
   des mois, Sankey, entonnoir, pyramide des âges, treemap, carte sur fond en ligne ou simple + classement,
   calendrier, pente, Pareto, petits multiples), simulateur calculé dans le navigateur, table exportable.
-- **Qualité** : 50 tests (contrats de données, formules, seuil G6, G9, formats), ruff propre, QA
+- **Assistant « RAG ancré »** (`app/assistant.py`) : zone de questions en langage naturel ; les
+  réponses sont des fiches calculées depuis les Parquet (aucun chiffre généré par un modèle, G1),
+  récupérées par recherche lexicale TF-IDF hors ligne, **avec le graphique correspondant**, leur
+  source et un lien vers la scène.
+- **Qualité** : 54 tests (contrats de données, formules, seuil G6, G9, formats), ruff propre, QA
   playwright (filtres, captures, performances), 5 relectures indépendantes corrigées.
 
 ## Les 8 scènes et leur titre-message final (généré depuis les données)

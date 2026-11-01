@@ -23,7 +23,7 @@ from dash import Dash, Input, Output, State, ctx, dcc, no_update  # noqa: E402
 import design.plotly_template  # noqa: E402,F401  (enregistre les templates)
 from app import callbacks_globaux  # noqa: E402
 from app import data_access as da  # noqa: E402
-from app.components import shell  # noqa: E402
+from app.components import assistant_ui, shell  # noqa: E402
 from app.scenes import PAR_CHEMIN, SCENES  # noqa: E402
 from design.theme import THEME  # noqa: E402
 from design.tokens import FONTS_URL  # noqa: E402
@@ -48,9 +48,11 @@ app.layout = dmc.MantineProvider(theme=THEME, defaultColorScheme="light", childr
     shell.app_shell(dash.page_container, da.annees(da.PERIODE_CUMUL),
                     da.departements_metropole(), da.DERNIERE_ANNEE),
     callbacks_globaux.modales(),
+    assistant_ui.widget(),
 ])
 callbacks_globaux.register(app)
 shell.register(app)
+assistant_ui.register(app)
 
 
 @app.callback(

@@ -70,3 +70,11 @@ Format : décision — justification (une ligne).
 - Scène 04 : la létalité des 2RM (4,0 tués / 100 victimes) est inférieure à celle des occupants de voiture (4,9) ; c'est sur le taux de gravité que les 2RM ressortent.
 - Scène 05 : les cases les plus létales sont des nuits de semaine (mercredi 3 h sur le cumul), pas seulement de week-end ; le titre de la heatmap est désormais calculé (« Entre minuit et 6 h, une victime est X fois plus souvent tuée »).
 - Scène 05 : le titre ne parle plus de « départements ruraux » (non calculé) mais de l'écart mesuré entre départements (de 1 à 7).
+
+## Assistant de questions (RAG ancré)
+- Demandé par le propriétaire (« agent IA du dashboard »). Choix : assistant **ancré sur les données, sans IA externe** (ni clé d'API, ni coût, hors ligne).
+- Pourquoi pas un vrai LLM : G1 (aucun chiffre inventé) interdit qu'un modèle génère un nombre ; un LLM pourrait halluciner un chiffre faux dans une présentation au comité. Ici, **tout nombre vient d'une fiche calculée depuis les Parquet** ; le moteur ne fait que retrouver la bonne fiche.
+- Technique : base de ~150 fiches construite au démarrage (`app/assistant.py`), récupération par TF-IDF + cosinus avec normalisation d'accents et dictionnaire de synonymes (morts→tués, moto→2RM, trottinette→EDP…). Aucune nouvelle dépendance (Python + pandas).
+- Chaque réponse affiche aussi le **petit graphique** de la fiche (courbe annuelle, barres, palmarès),
+  construit avec le thème courant et redessiné au changement clair/sombre.
+- Garde-fous : source et lien vers la scène sous chaque réponse ; question hors sujet → message « aucune réponse dans les données » (jamais d'invention). Tests dans `tests/test_assistant.py`.
