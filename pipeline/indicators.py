@@ -86,6 +86,11 @@ def build_scenes(u: pd.DataFrame, acc: pd.DataFrame, pop: pd.DataFrame,
 
     out["s03_matrice"] = agg_usagers(um, ["annee", "dep", "catr_groupe", "lum_groupe"])
 
+    # Saisonnalité (mois) et contextes par mode (radar de la scène 04)
+    out["s02_mois"] = agg_usagers(um, ["annee", "dep", "mois"])
+    out["s04_contexte"] = agg_usagers(um, ["annee", "dep", "type_usager", "nuit", "weekend",
+                                           "agg_lib"])
+
     # Scène 04 : âge × sexe (avec population), casque des 2RM
     out["s04_age"] = agg_usagers(um, ["annee", "dep", "sexe_lib", "classe_age", "type_usager"])
     out["s04_casque"] = agg_usagers(um[um["type_usager"] == "2RM"],

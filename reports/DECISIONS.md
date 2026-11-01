@@ -54,6 +54,9 @@ Format : décision — justification (une ligne).
 - Carte : une seule grande carte avec bascule tués / victimes, projection conique conforme, classement des 10 premiers à côté (au lieu de deux cartes côte à côte).
 - Boîtes « âge des tués » : statistiques nationales précalculées dans le pipeline (non additives, G15), donc non filtrables par département (puce « France métropolitaine »).
 - Boîtes « dispersion des départements » : victimes pour 100 000 hab. (les tués par million seraient trop souvent masqués par le seuil, ce qui fausserait la distribution).
+- Deuxième série demandée par le propriétaire : menu latéral repliable (≥ 1200 px, mémorisé dans le navigateur), KPI plus fins (196 px, filet fin, liseré ambre sur la vedette), jauges semi-circulaires (létalité vs 2019 ; gravité du mode vs ensemble), rose des mois (saisonnalité), radar de gravité par contexte, calendrier années × mois, graphique de pente 2019 → 2025.
+- ECharts non ajouté : nouvelle dépendance interdite sans accord (G14) ; style reproduit avec Plotly. À trancher par le propriétaire.
+- Remplissages semi-transparents calculés depuis les tokens (`tokens.transparence`), jamais de couleur en dur.
 
 ## Constats contraires aux hypothèses (G3)
 - Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,93 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.

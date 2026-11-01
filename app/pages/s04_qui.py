@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import dash
+import dash_mantine_components as dmc
 import numpy as np
 import pandas as pd
-from dash import Output, callback, html
+from dash import Input, Output, callback, html
 
 from app import data_access as da
 from app import figures as F
@@ -15,6 +16,7 @@ from app.components.format import fmt_number, fmt_pct, fmt_ratio
 from app.components.kpi_card import kpi_card, kpi_row
 from app.components.scene_utils import ENTREES, SEUIL, deltas_annuels, fmt_ou_na, lire
 from app.scenes import voisines
+from design.tokens import tokens
 from pipeline import config as C
 from pipeline.indicators import letalite, pour_100k, taux_gravite
 
@@ -121,6 +123,21 @@ def layout(**_):
                        "Part des victimes tuées ou hospitalisées, par mode et tranche d'âge.",
                        da.SOURCE_BAAC, "taux de gravité = (tués + hospitalisés) / victimes ; "
                        "cases sous 30 victimes grisées", hauteur=380),
+        ]),
+        html.Div(className="grille-2-1", children=[
+            chart_card("s04-radar", "Le contexte aggrave-t-il autant tous les modes ?",
+                       "Taux de gravité du mode choisi (rouge) et de l'ensemble des usagers "
+                       "(gris), selon le moment et le lieu.", da.SOURCE_BAAC,
+                       "taux de gravité = (tués + hospitalisés) / victimes ; contextes sous 30 "
+                       "victimes à zéro", hauteur=400,
+                       controles=dmc.Select(id="s04-mode", data=RADAR_MODES, value="2RM",
+                                            allowDeselect=False, w=220,
+                                            comboboxProps={"withinPortal": True},
+                                            **{"aria-label": "Mode de déplacement"})),
+            chart_card("s04-jauge", "Gravité du mode choisi",
+                       "Part des victimes tuées ou hospitalisées ; repère noir : ensemble des "
+                       "usagers.", da.SOURCE_BAAC, "taux de gravité = (tués + hospitalisés) / "
+                       "victimes", hauteur=300),
         ]),
         insight(et_alors()),
         scene_nav(*voisines(NUM)),
@@ -329,3 +346,54 @@ def boites_et_matrice(filtres, scheme):
     v, mode, tr = max(vis)
     titre_m = f"{mode}, {tr} ans : {fmt_pct(v, 0)} des victimes tuées ou hospitalisées"
     return fig_b, puces_b, titre_b, fig_m, puces_m, titre_m
+
+
+QUAND = {"Jour": "le jour", "Nuit": "la nuit", "Semaine": "en semaine",
+         "Week-end": "le week-end", "En agglo.": "en agglomération",
+         "Hors agglo.": "hors agglomération"}
+RADAR_MODES = ["Piéton", "Vélo", "EDP", "2RM", "Voiture", "Utilitaire"]
+CONTEXTES = [("Jour", "nuit", False), ("Nuit", "nuit", True), ("Semaine", "weekend", False),
+             ("Week-end", "weekend", True), ("En agglo.", "agg_lib", "En agglomération"),
+             ("Hors agglo.", "agg_lib", "Hors agglomération")]
+
+
+def _gravites(df):
+    out = []
+    for _, col, val in CONTEXTES:
+        d = df[df[col] == val][["graves", "victimes"]].sum()
+        out.append(float(d["graves"] / d["victimes"] * 100) if d["victimes"] >= SEUIL else 0.0)
+    return out
+
+
+@callback(Output(graph_id("s04-radar"), "figure"), Output("s04-radar-puces", "children"),
+          Output("s04-radar-titre", "children"), Output(graph_id("s04-jauge"), "figure"),
+          Output("s04-jauge-puces", "children"), Output("s04-jauge-titre", "children"),
+          Input("s04-mode", "value"), *ENTREES)
+def radar_et_jauge(mode, filtres, scheme):
+    periode, dep, scheme = lire(filtres, scheme)
+    mode = mode or "2RM"
+    c = da.filtrer(da.table("s04_contexte"), periode, dep)
+    puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
+    tk = tokens(scheme)
+    g_mode, g_tous = _gravites(c[c["type_usager"] == mode]), _gravites(c)
+    axes = [lib for lib, *_ in CONTEXTES]
+    fig_r = F.radar(axes, {mode: g_mode, "Ensemble des usagers": g_tous},
+                    {mode: tk["grav-tue"], "Ensemble des usagers": tk["data-neutre"]}, scheme)
+    ecarts = [(a, m - e) for a, m, e in zip(axes, g_mode, g_tous, strict=True) if m and e]
+    titre_r = "Gravité selon le contexte"
+    if ecarts:
+        a, e = max(ecarts, key=lambda x: x[1])
+        titre_r = (f"{mode} : l'écart de gravité avec la moyenne culmine {QUAND[a]} "
+                   f"({fmt_number(e, 0, signe=True)} pts)")
+    tot_m = c[c["type_usager"] == mode][["graves", "victimes"]].sum()
+    tot = c[["graves", "victimes"]].sum()
+    if tot_m["victimes"] < SEUIL or tot["victimes"] < SEUIL:
+        fig_j = F.message_figure("Moins de 30 victimes sur ce périmètre", scheme)
+        titre_j = f"Gravité : {mode}"
+    else:
+        gm = tot_m["graves"] / tot_m["victimes"] * 100
+        gt = tot["graves"] / tot["victimes"] * 100
+        fig_j = F.jauge(gm, gt, 0, 100, scheme, suffixe=" %", lib_ref="ensemble des usagers",
+                        decimals=0)
+        titre_j = f"{mode} : {fmt_pct(gm, 0)} des victimes gravement atteintes"
+    return fig_r, puces, titre_r, fig_j, puces, titre_j

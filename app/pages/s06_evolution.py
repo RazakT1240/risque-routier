@@ -127,10 +127,16 @@ def layout(**_):
                    f"Victimes par type d'usager, indice base 100 en {A0}, même échelle.",
                    da.SOURCE_BAAC, f"victimes de l'année / victimes {A0} × 100 ; types sous 30 "
                    f"victimes en {A0} non affichés", hauteur=520),
-        chart_card("s06-modes", "Comment se répartissent les tués, année après année",
-                   "Part de chaque mode de déplacement parmi les tués, par année.",
-                   da.SOURCE_BAAC, "tués d'un mode / total des tués de l'année ; années sous 30 "
-                   "tués non affichées", hauteur=380),
+        html.Div(className="grille-2", children=[
+            chart_card("s06-pente", f"Les victimes par mode, de {A0} à {da.DERNIERE_ANNEE}",
+                       "Une ligne par mode ; échelle logarithmique pour comparer les pentes.",
+                       da.SOURCE_BAAC, "victimes de l'année ; modes sous 30 victimes exclus",
+                       hauteur=420),
+            chart_card("s06-modes", "Comment se répartissent les tués, année après année",
+                       "Part de chaque mode de déplacement parmi les tués, par année.",
+                       da.SOURCE_BAAC, "tués d'un mode / total des tués de l'année ; années "
+                       "sous 30 tués non affichées", hauteur=420),
+        ]),
         chart_card("s06-pareto", f"Quelques segments concentrent la gravité ({critere})",
                    "Segments type d'usager × agglomération, triés par poids décroissant ; ligne "
                    "= part cumulée.", da.SOURCE_BAAC,
@@ -260,3 +266,21 @@ def repartition_modes(filtres, scheme):
     titre_m = (f"{premier} : {fmt_pct(parts[premier][-1], 0)} des tués en {annees[-1]}, "
                f"contre {fmt_pct(parts[premier][0], 0)} en {annees[0]}")
     return fig, puces, titre_m
+
+
+@callback(Output(graph_id("s06-pente"), "figure"), Output("s06-pente-puces", "children"),
+          Output("s06-pente-titre", "children"), *ENTREES)
+def graphique_pente(filtres, scheme):
+    _, dep, scheme = lire(filtres, scheme)
+    v = victimes_par_type(dep)
+    a1 = da.DERNIERE_ANNEE
+    modes = [c for c in C.TYPE_USAGER_ORDRE if c in v.columns and c != "Autre"
+             and v[c][A0] >= SEUIL and v[c][a1] >= SEUIL]
+    puces = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
+    if len(modes) < 2:
+        return (F.message_figure("Effectifs trop faibles par mode", scheme), puces,
+                f"Les victimes par mode, de {A0} à {a1}")
+    top, ev = plus_forte_hausse(v[modes], a1)
+    fig = F.pente(modes, [float(v[c][A0]) for c in modes], [float(v[c][a1]) for c in modes],
+                  (A0, a1), scheme, alerte=top)
+    return fig, puces, f"{top} : {fmt_pct(ev, 0, signe=True)} de victimes en {a1 - A0} ans"

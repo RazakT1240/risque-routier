@@ -69,7 +69,8 @@ def header(annees, departements, annee_defaut) -> dmc.AppShellHeader:
 
 
 def navbar() -> dmc.AppShellNavbar:
-    return dmc.AppShellNavbar(className="app-navbar", p="md", children=dmc.Stack(gap=4, children=[
+    return dmc.AppShellNavbar(className="app-navbar", p="md", children=dmc.Stack(
+        gap=4, h="100%", children=[
         html.Div("Challenge Dataviz · Institut des Actuaires", className="nav-badge"),
         html.Div(style={"height": 12}),
         *[dmc.NavLink(
@@ -81,6 +82,13 @@ def navbar() -> dmc.AppShellNavbar:
                 DashIconify(icon=s["icon"], width=18)]),
         ) for s in SCENES],
         html.Div(style={"flex": 1}),
+        html.Button(id="nav-replier", className="nav-replier", n_clicks=0, title="Replier le menu",
+                    **{"aria-label": "Replier ou déplier le menu", "aria-expanded": "true"},
+                    children=[DashIconify(icon="tabler:layout-sidebar-left-collapse", width=18,
+                                          className="ico-replier"),
+                              DashIconify(icon="tabler:layout-sidebar-left-expand", width=18,
+                                          className="ico-deplier"),
+                              html.Span("Replier le menu", className="nav-replier-texte")]),
     ]))
 
 

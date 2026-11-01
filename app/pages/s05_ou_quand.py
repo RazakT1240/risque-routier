@@ -128,6 +128,10 @@ def layout(**_):
                    "ambre suit le département filtré.", f"{da.SOURCE_BAAC} ; {da.SOURCE_INSEE}",
                    "victimes / population de l'année × 100 000 ; départements sous 30 victimes "
                    "exclus de l'année", hauteur=380),
+        chart_card("s05-calendrier", "Le calendrier des tués",
+                   "Tués par mois et par année : chaque case est un mois.", da.SOURCE_BAAC,
+                   "usagers tués, par mois de l'accident ; cases sous 30 tués grisées",
+                   hauteur=320),
         html.Div(className="grille-2", children=[
             chart_card("s05-heatmap", "Accidents et létalité selon le jour et l'heure",
                        "Jour de la semaine × heure de l'accident ; plus la case est foncée, plus "
@@ -340,3 +344,26 @@ def meteo(filtres, scheme):
     alerte = METEO_LIB[max(signif, key=lambda k: e[k]["rr"])] if signif else None
     return F.risques_relatifs([METEO_LIB[k] for k in cles], rr, [e[k]["ic_bas"] for k in cles],
                               [e[k]["ic_haut"] for k in cles], scheme, alerte=alerte)
+
+
+MOIS_C = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.",
+          "Nov.", "Déc."]
+
+
+@callback(Output(graph_id("s05-calendrier"), "figure"), Output("s05-calendrier-puces", "children"),
+          Output("s05-calendrier-titre", "children"), *ENTREES)
+def calendrier(filtres, scheme):
+    _, dep, scheme = lire(filtres, scheme)
+    m = da.filtrer(da.table("s02_mois"), dep=dep, toutes_annees=True).pivot_table(
+        index="annee", columns="mois", values="tues", aggfunc="sum").reindex(
+        index=C.ANNEES, columns=range(1, 13)).fillna(0)
+    puces = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
+    masque = (m < SEUIL).to_numpy()
+    if masque.all():
+        return (F.message_figure("Moins de 30 tués par mois : calendrier non affiché", scheme),
+                puces, "Le calendrier des tués")
+    fig = F.matrice([str(a) for a in C.ANNEES], MOIS_C, m.to_numpy(), masque, scheme,
+                    fmt=lambda v: fmt_number(v, 0), survol=" tués")
+    a, mo = m.stack().idxmax()
+    titre = f"Le mois le plus meurtrier : {MOIS_C[int(mo) - 1].lower().rstrip('.')} {a}"
+    return fig, puces, titre

@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots
 
 from app.components.format import fmt_number, fmt_pct, fmt_ratio
 from design.plotly_template import template_name
-from design.tokens import FONT_SANS, FONT_SERIF, TRANSPARENT, tokens
+from design.tokens import FONT_SANS, FONT_SERIF, TRANSPARENT, tokens, transparence
 
 HOVER_BASE = dict(hoverlabel=dict(namelength=-1))
 
@@ -600,3 +600,101 @@ def barres_100(annees, parts: dict[str, list], couleurs: dict[str, str], scheme:
     return _base(fig, scheme, barmode="stack", bargap=0.28, showlegend=False,
                  margin=dict(l=8, r=150, t=8, b=8), xaxis=dict(dtick=1),
                  yaxis=dict(range=[0, 100], ticksuffix=" %", showgrid=False))
+
+
+# --- Jauges, rose des mois, radar, pente --------------------------------------
+
+def jauge(valeur: float, reference: float | None, vmin: float, vmax: float, scheme: str,
+          suffixe: str = "", lib_ref: str = "", decimals: int = 1,
+          plus_est_mauvais: bool = True) -> go.Figure:
+    """Jauge semi-circulaire : aiguille pleine jusqu'à la valeur, repère de référence."""
+    t = tokens(scheme)
+    fig = go.Figure(go.Indicator(
+        mode="gauge+number+delta" if reference is not None else "gauge+number",
+        value=valeur,
+        number=dict(valueformat=f".{decimals}f", suffix=suffixe,
+                    font=dict(family=FONT_SANS, size=40, color=t["text-primary"])),
+        delta=dict(reference=reference, valueformat=f".{decimals}f", relative=False,
+                   increasing=dict(color=t["delta-hausse"] if plus_est_mauvais
+                                   else t["delta-baisse"], symbol="▲ "),
+                   decreasing=dict(color=t["delta-baisse"] if plus_est_mauvais
+                                   else t["delta-hausse"], symbol="▼ "),
+                   font=dict(size=14)) if reference is not None else None,
+        gauge=dict(
+            shape="angular", axis=dict(range=[vmin, vmax], tickwidth=1, tickcolor=t["border"],
+                                       tickfont=dict(size=11, color=t["text-muted"]),
+                                       nticks=6),
+            bar=dict(color=t["grav-tue"], thickness=0.28), bgcolor=t["seq-na"], borderwidth=0,
+            threshold=dict(line=dict(color=t["text-primary"], width=3), thickness=0.85,
+                           value=reference) if reference is not None else None)))
+    if reference is not None and lib_ref:
+        fig.add_annotation(**_annot(t, 0.5, -0.08, f"Repère noir : {lib_ref}", t["text-muted"],
+                                    xref="paper", yref="paper"))
+    return _base(fig, scheme, margin=dict(l=36, r=40, t=16, b=28))
+
+
+MOIS_COURTS = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.",
+               "Nov.", "Déc."]
+
+
+def rose_mois(valeurs: list, scheme: str, unite: str = "tués") -> go.Figure:
+    """Diagramme radial : un secteur par mois ; le mois le plus lourd en rouge."""
+    t = tokens(scheme)
+    imax = int(np.argmax(valeurs))
+    fig = go.Figure(go.Barpolar(
+        r=valeurs, theta=MOIS_COURTS,
+        marker=dict(color=[t["grav-tue"] if i == imax else t["data-neutre"]
+                           for i in range(12)], line=dict(color=t["bg-surface"], width=2)),
+        hovertemplate="%{theta} : %{r:,.0f} " + unite + "<extra></extra>"))
+    fig.update_layout(polar=dict(
+        bgcolor=TRANSPARENT, hole=0.18,
+        radialaxis=dict(showticklabels=False, showline=False, gridcolor=t["border"], ticks=""),
+        angularaxis=dict(direction="clockwise", rotation=90, gridcolor=t["border"],
+                         linecolor=t["border"], tickfont=dict(size=12, color=t["text-secondary"]))))
+    return _base(fig, scheme, showlegend=False, margin=dict(l=40, r=40, t=24, b=24))
+
+
+def radar(axes: list[str], series: dict[str, list], couleurs: dict[str, str],
+          scheme: str) -> go.Figure:
+    """Radar de profils (même unité sur tous les axes) ; remplissage léger, légende en bas."""
+    t = tokens(scheme)
+    fig = go.Figure()
+    for nom, vals in series.items():
+        fig.add_trace(go.Scatterpolar(
+            r=vals + vals[:1], theta=axes + axes[:1], name=nom, mode="lines+markers",
+            line=dict(color=couleurs[nom], width=2.5), marker=dict(size=6),
+            fill="toself", fillcolor=transparence(couleurs[nom], 0.14),
+            hovertemplate=f"{nom} · %{{theta}} : %{{r:.1f}} %<extra></extra>"))
+    fig.update_layout(polar=dict(
+        bgcolor=TRANSPARENT,
+        radialaxis=dict(ticksuffix=" %", tickfont=dict(size=9, color=t["text-muted"]),
+                        gridcolor=t["border"], linecolor=t["border"], angle=90, nticks=4,
+                        tickangle=90, rangemode="tozero"),
+        angularaxis=dict(gridcolor=t["border"], linecolor=t["border"],
+                         tickfont=dict(size=12, color=t["text-primary"]))))
+    return _base(fig, scheme, showlegend=True, margin=dict(l=48, r=48, t=24, b=24),
+                 legend=dict(orientation="h", y=-0.08, x=0.5, xanchor="center"))
+
+
+def pente(noms: list[str], debut: list, fin: list, annees: tuple[int, int], scheme: str,
+          alerte: str | None = None, fmt=lambda v: fmt_number(v)) -> go.Figure:
+    """Graphique de pente : une ligne par catégorie entre deux années, étiquettes aux deux bouts."""
+    t = tokens(scheme)
+    fig = go.Figure()
+    for nom, a, b in zip(noms, debut, fin, strict=True):
+        coul = t["grav-tue"] if nom == alerte else t["data-neutre"]
+        larg = 3 if nom == alerte else 1.75
+        fig.add_trace(go.Scatter(
+            x=[str(annees[0]), str(annees[1])], y=[a, b], mode="lines+markers",
+            line=dict(color=coul, width=larg), marker=dict(size=7, color=coul),
+            hovertemplate=f"{nom} · %{{x}} : %{{y:,.0f}}<extra></extra>"))
+        # Annotations positionnées par indice de catégorie (0, 1) : Plotly lirait « 2019 »
+        # comme une position numérique
+        fig.add_annotation(**_annot(t, 1, b, f"<b>{nom}</b> {fmt(b)}", coul,
+                                    xanchor="left", xshift=10))
+        fig.add_annotation(**_annot(t, 0, a, fmt(a), t["text-muted"],
+                                    xanchor="right", xshift=-10))
+    return _base(fig, scheme, showlegend=False, margin=dict(l=60, r=170, t=16, b=8),
+                 xaxis=dict(type="category", showgrid=False, showline=False, ticks="",
+                            range=[-0.08, 1.08], autorange=False),
+                 yaxis=dict(type="log", showticklabels=False, showgrid=False))

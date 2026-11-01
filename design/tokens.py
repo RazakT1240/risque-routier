@@ -131,3 +131,10 @@ def tokens(scheme: str) -> dict:
     for i, col in enumerate(CAT, start=1):
         base[f"cat-{i}"] = col
     return base
+
+
+def transparence(couleur: str, alpha: float) -> str:
+    """Couleur d'un token (hexadécimal) avec une opacité, pour les remplissages."""
+    c = couleur.lstrip("#")
+    r, g, b = (int(c[i:i + 2], 16) for i in (0, 2, 4))
+    return f"rgba({r},{g},{b},{alpha})"

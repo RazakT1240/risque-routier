@@ -60,6 +60,24 @@
   });
   observateur.observe(document.documentElement, { childList: true, subtree: true });
 
+  // Menu latéral repliable (écrans larges) : classe sur <html>, mémorisée localement
+  var CLE_MENU = "risque-routier-menu-replie";
+  function appliquerMenu(replie) {
+    document.documentElement.classList.toggle("nav-repliee", replie);
+    var bouton = document.getElementById("nav-replier");
+    if (bouton) { bouton.setAttribute("aria-expanded", replie ? "false" : "true"); }
+    // Les graphiques Plotly se redimensionnent à la nouvelle largeur
+    setTimeout(function () { window.dispatchEvent(new Event("resize")); }, 260);
+  }
+  try { appliquerMenu(localStorage.getItem(CLE_MENU) === "1"); } catch (e) { /* sans stockage */ }
+  document.addEventListener("click", function (e) {
+    var bouton = e.target.closest && e.target.closest("#nav-replier");
+    if (!bouton) { return; }
+    var replie = !document.documentElement.classList.contains("nav-repliee");
+    appliquerMenu(replie);
+    try { localStorage.setItem(CLE_MENU, replie ? "1" : "0"); } catch (err) { /* sans stockage */ }
+  });
+
   window.routeExportPng = function (gd, nom) {
     if (!gd || !window.Plotly) { return; }
     var fond = getComputedStyle(document.documentElement).getPropertyValue("--bg-surface").trim();

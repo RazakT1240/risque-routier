@@ -360,3 +360,42 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 .kpi-back-text{font-size:12px;line-height:16px}
 .kpi-back-title{font-size:10.5px;line-height:13px}
 .kpi-value-texte{font-size:18px;line-height:23px}
+
+/* Menu latéral repliable (≥ 1200 px) : plus de place pour les graphiques */
+.nav-replier{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--border);background:transparent;
+  color:var(--text-secondary);border-radius:var(--radius-sm);padding:8px 10px;cursor:pointer;font:500 13px/18px var(--font-sans)}
+.nav-replier:hover{background:var(--bg-subtle);color:var(--text-primary)}
+.ico-deplier{display:none}
+.mantine-AppShell-navbar,.mantine-AppShell-main{transition:width .22s ease-out,padding .22s ease-out}
+@media (min-width:1200px){
+  html.nav-repliee .mantine-AppShell-root{--app-shell-navbar-width:72px!important;--app-shell-navbar-offset:72px!important}
+  html.nav-repliee .app-navbar .nav-badge,html.nav-repliee .app-navbar .mantine-NavLink-body,
+  html.nav-repliee .app-navbar .nav-num,html.nav-repliee .nav-replier-texte,html.nav-repliee .ico-replier{display:none}
+  html.nav-repliee .ico-deplier{display:inline-block}
+  html.nav-repliee .app-navbar{padding:12px 8px!important}
+  html.nav-repliee .app-navbar .mantine-NavLink-root{justify-content:center;padding:10px 0}
+  html.nav-repliee .app-navbar .mantine-NavLink-section{margin:0}
+  html.nav-repliee .nav-replier{justify-content:center;padding:8px 0}
+}
+@media (max-width:1199px){.nav-replier{display:none}}
+
+/* KPI v3 — plus fins, plus premium */
+.kpi-flip{height:196px}
+.kpi-face{padding:16px 16px 12px;gap:6px;border-color:var(--border);
+  box-shadow:0 1px 2px rgba(16,24,40,.04),0 1px 3px rgba(16,24,40,.03)}
+[data-mantine-color-scheme="dark"] .kpi-face{box-shadow:none}
+.kpi-flip:hover .kpi-face{border-color:var(--data-neutre-clair)}
+.kpi-icone{width:28px;height:28px;border-radius:8px}
+.kpi-icone svg{width:16px;height:16px}
+.kpi-titre{font-size:10.5px;line-height:14px;letter-spacing:.08em;padding-top:1px}
+.kpi-value{font:600 30px/34px var(--font-sans);letter-spacing:-.02em}
+.kpi-value-texte{font-size:18px;line-height:22px}
+.pill{font-size:10.5px;padding:1px 7px}
+.spark-wrap{height:26px}
+.kpi-spark-ans{font-size:9.5px}
+.kpi-vedette .kpi-face:not(.kpi-back){box-shadow:inset 0 3px 0 var(--accent)}
+.kpi-back{padding:12px 14px 10px;gap:3px}
+.kpi-back-text{font-size:11.5px;line-height:15px}
+.kpi-back-title{font-size:10px;line-height:12px}
+.kpi-leader-verso{padding:3px 7px}
+@media (min-width:1200px) and (max-width:1439px){.kpi-value{font-size:27px;line-height:31px}}

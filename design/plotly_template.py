@@ -16,9 +16,10 @@ def make_template(t: dict) -> go.layout.Template:
         xaxis=dict(showgrid=False, zeroline=False, showline=True, linecolor=t["border"],
                    ticks="outside", tickcolor=t["border"], tickfont=dict(size=12),
                    automargin=True),
-        yaxis=dict(showgrid=True, gridcolor=t["border"], gridwidth=1, zeroline=False,
-                   showline=False, tickfont=dict(size=12), automargin=True),
-        hoverlabel=dict(bgcolor=t["bg-surface"], bordercolor=t["border"],
+        yaxis=dict(showgrid=True, gridcolor=t["border"], gridwidth=1, griddash="dot",
+                   zeroline=False, showline=False, tickfont=dict(size=12), automargin=True),
+        barcornerradius=4,
+        hoverlabel=dict(bgcolor=t["bg-surface"], bordercolor=t["border"], align="left",
                         font=dict(family=FONT_SANS, size=13, color=t["text-primary"])),
         legend=dict(orientation="h", y=-0.18, font=dict(size=12)),
         title=dict(text=""),                  # le titre vit dans la carte, pas dans la figure

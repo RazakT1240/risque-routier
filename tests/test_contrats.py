@@ -12,7 +12,9 @@ pytestmark = pytest.mark.skipif(not (C.PROCESSED / "usagers_enrichis.parquet").e
 
 DEP_REGEX = r"0[1-9]|1\d|[3-8]\d|9[0-5]|2[1-9]|2[AB]|97[1-8]|98[678]"
 AGREGATS = ["pop_dep", "s02_gravite", "s02_accidents", "s03_vma", "s03_lum", "s03_obs",
-            "s04_age", "s04_casque", "s05_heatmap", "ind_parc", "s08_donnees", "s03_matrice"]
+            "s04_age", "s04_casque", "s05_heatmap", "ind_parc", "s08_donnees", "s03_matrice",
+            "s02_mois",
+            "s04_contexte"]
 
 
 def read(name: str) -> pd.DataFrame:
@@ -140,7 +142,8 @@ def test_population_fine_positive():
 
 def test_totaux_tues_coherents_entre_scenes():
     ref = read("s02_gravite")["tues"].sum()
-    for name in ("s03_vma", "s03_lum", "s03_obs", "s04_age", "s05_heatmap"):
+    for name in ("s03_vma", "s03_lum", "s03_obs", "s04_age", "s05_heatmap", "s02_mois",
+                 "s04_contexte", "s03_matrice"):
         assert read(name)["tues"].sum() == ref, name
 
 

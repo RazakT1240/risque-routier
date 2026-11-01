@@ -93,6 +93,14 @@ def layout(**_):
                        "Répartition des victimes par gravité.", da.SOURCE_BAAC,
                        "tués, blessés hospitalisés (> 24 h), blessés légers", hauteur=340),
         ]),
+        html.Div(className="grille-2-1", children=[
+            chart_card("s02-rose", "Saisonnalité des tués",
+                       "Tués par mois de l'accident, sur la période et le territoire choisis.",
+                       da.SOURCE_BAAC, "usagers tués, par mois de l'accident", hauteur=380),
+            chart_card("s02-jauge", "Létalité de la période",
+                       "Tués pour 100 victimes ; repère noir : niveau de 2019.", da.SOURCE_BAAC,
+                       "létalité = tués / victimes × 100", hauteur=300),
+        ]),
         insight(et_alors()),
         scene_nav(*voisines(NUM)),
     )
@@ -249,3 +257,39 @@ def evolution_et_repartition(filtres, scheme):
     p_toutes = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
     p_periode = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
     return fig_l, p_toutes, fig_d, p_periode, titre_d
+
+
+MOIS_NOMS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août",
+             "septembre", "octobre", "novembre", "décembre"]
+
+
+@callback(Output(graph_id("s02-rose"), "figure"), Output("s02-rose-puces", "children"),
+          Output("s02-rose-titre", "children"), Output(graph_id("s02-jauge"), "figure"),
+          Output("s02-jauge-puces", "children"), *ENTREES)
+def saisonnalite_et_jauge(filtres, scheme):
+    periode, dep, scheme = lire(filtres, scheme)
+    puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
+    m = da.filtrer(da.table("s02_mois"), periode, dep).groupby("mois")["tues"].sum().reindex(
+        range(1, 13), fill_value=0)
+    if m.sum() < SEUIL:
+        fig_r = F.message_figure("Moins de 30 tués sur ce périmètre", scheme)
+        titre_r = "Saisonnalité des tués"
+    else:
+        fig_r = F.rose_mois(m.astype(int).tolist(), scheme)
+        mmax, mmin = int(m.idxmax()), int(m.idxmin())
+        titre_r = (f"{MOIS_NOMS[mmax - 1].capitalize()} compte {fmt_number(m.max() / m.min(), 1)}"
+                   f" fois plus de tués que {MOIS_NOMS[mmin - 1]}")
+    s = par_annee("s02_gravite", dep, COLS)
+    ans = da.annees(periode)
+    vict = s.loc[ans, "victimes"].sum()
+    if vict < SEUIL:
+        fig_j = F.message_figure("Moins de 30 victimes sur ce périmètre", scheme)
+    else:
+        let = letalite(s.loc[ans, "tues"].sum(), vict)
+        ref = None
+        a0 = da.PREMIERE_ANNEE
+        if periode != da.PERIODE_CUMUL and int(periode) != a0 and s["victimes"][a0] >= SEUIL:
+            ref = letalite(s["tues"][a0], s["victimes"][a0])
+        fig_j = F.jauge(let, ref, 0, max(10, let * 1.4), scheme, lib_ref=f"{a0}",
+                        decimals=1)
+    return fig_r, puces, titre_r, fig_j, puces
