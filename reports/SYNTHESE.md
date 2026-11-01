@@ -15,6 +15,12 @@
   réponses sont des fiches calculées depuis les Parquet (aucun chiffre généré par un modèle, G1),
   récupérées par recherche lexicale TF-IDF hors ligne, **avec le graphique correspondant**, leur
   source et un lien vers la scène.
+- **Chute en euros** : le coût socio-économique est calculé depuis les victimes × valeurs tutélaires
+  officielles (20,7 Md€ en 2025, métropole) ; carte « Coût » de l'accueil, pondération du Pareto, table Méthode.
+- **Illustrations véhicules « 3D »** (`design/vehicules.py`) : voiture, deux-roues, piéton, vélo, poids lourd
+  en isométrique (3 tons par volume), bande « Qui paie le plus lourd tribut ? » sur l'accueil (part de tués par mode).
+- **Couleurs resserrées** : échelle séquentielle passée en ambre de la marque (heatmaps, carte, treemap),
+  pour que le rouge d'alerte reste unique (G10) et que la marque vive dans les graphiques.
 - **Qualité** : 54 tests (contrats de données, formules, seuil G6, G9, formats), ruff propre, QA
   playwright (filtres, captures, performances), 5 relectures indépendantes corrigées.
 
@@ -66,10 +72,10 @@
   §8 excluait les fonds tuilés).
 
 ## Ce qu'il vous reste à faire
-1. **Renseigner `config/references.yaml`** avec leur source : valeurs tutélaires du coût d'un tué, d'un
-   blessé hospitalisé, d'un blessé léger (bilan ONISR de l'année de référence), et part des 2RM dans le
-   trafic. Tant qu'elles valent `null`, l'application affiche « À renseigner » et le Pareto pondère par
-   tués + hospitalisés.
+1. **Confirmer `config/references.yaml`** : les valeurs tutélaires officielles de l'ONISR (méthode Quinet,
+   bilan 2021 : tué 3,575 M€, blessé hospitalisé 446 887 €, blessé léger 17 875 €) y sont désormais
+   renseignées avec leur source, mais `verifie: false`. À confirmer (et actualiser à l'année voulue).
+   Reste `null` : la part des 2RM dans le trafic (affiche « À renseigner »).
 2. **Comparer `reports/controles.md` aux bilans ONISR** de chaque année (accidents, victimes, tués,
    métropole et France entière). Écart connu : le brief annonçait 58 841 accidents en 2019 et 47 745 en
    2020 ; le calcul donne 58 840 et 47 744.

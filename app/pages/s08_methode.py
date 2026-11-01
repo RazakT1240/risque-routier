@@ -206,14 +206,20 @@ def layout(**_):
             bloc("Contrôles de cohérence", "tabler:checks", controles()),
         ]),
         bloc("Valeurs externes", "tabler:file-certificate", html.Div([
-            html.P("Ces valeurs ne sont pas dans les données fournies ; elles se renseignent à la "
-                   "main, avec leur source, dans config/references.yaml.", className="body"),
+            html.P("Ces valeurs ne sont pas dans les données fournies. Les valeurs tutélaires "
+                   "ci-dessous sont les valeurs officielles de l'ONISR (méthode Quinet) ; "
+                   + ("elles restent à confirmer par le propriétaire."
+                      if not vt.get("verifie") else "elles ont été confirmées."),
+                   className="body"),
             dmc.Table(data={"head": ["Valeur", "Montant", "Source"], "body": [
                 ["Coût d'un tué (valeur tutélaire)",
                  fmt_number(vt["tue"]) + " €" if vt.get("tue") else a_renseigner,
                  vt.get("source") or a_renseigner],
                 ["Coût d'un blessé hospitalisé",
                  fmt_number(vt["blesse_hospitalise"]) + " €" if vt.get("blesse_hospitalise")
+                 else a_renseigner, vt.get("source") or a_renseigner],
+                ["Coût d'un blessé léger",
+                 fmt_number(vt["blesse_leger"]) + " €" if vt.get("blesse_leger")
                  else a_renseigner, vt.get("source") or a_renseigner],
                 ["Part des 2RM dans le trafic", references.get("part_trafic_2rm_pct")
                  or a_renseigner, references.get("part_trafic_2rm_source") or a_renseigner],

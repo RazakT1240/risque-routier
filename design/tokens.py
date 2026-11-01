@@ -66,8 +66,8 @@ DARK = {
     "on-accent": "#0E1217",
 }
 SEQ = {
-    "light": ["#FCEEE4", "#F6C7A8", "#EC8F68", "#CF4C3A", "#8C1C16"],
-    "dark": ["#2A1C1B", "#5B2822", "#98372D", "#D45244", "#F77E70"],
+    "light": ["#F7EEDD", "#EBC981", "#D79B3C", "#AE6E1C", "#6E400F"],
+    "dark": ["#241E14", "#4C381A", "#80591F", "#B57E2B", "#E6B048"],
 }
 CAT = ["#3E5C76", "#4F86A6", "#6A9E7F", "#C9A061", "#9A7BB0", "#3F8F8B"]
 
@@ -77,6 +77,24 @@ HERO_PALETTE = {
     "relief": "#0B0F14", "chaussee": "#0F1318", "chaussee-loin": "#1A2029",
     "marquage": "#C9CED6", "phare": "#FFF4D6", "feu-arriere": "#E5484D",
     "reflet-ambre": "#F2B705", "pluie": "#A6AEB9",
+}
+
+# Illustrations véhicules « 3D » isométriques (assets générés, §6.3).
+# Trois tons par volume (dessus / côté éclairé / face ombrée) pour le relief ;
+# couleurs lues ici pour respecter G9 (aucun hexadécimal dans design/vehicules.py).
+VEHICULE_PALETTE = {
+    # carrosserie ambre (voiture)
+    "corps-haut": "#F4C85B", "corps-cote": "#E0A100", "corps-face": "#B07D12",
+    # cabine / toit (ton plus profond)
+    "toit-haut": "#C98A1A", "toit-cote": "#A96F12", "toit-face": "#7E4F0C",
+    # second coloris (poids lourd, vélo) — ardoise bleutée de la palette catégorielle
+    "alt-haut": "#5E86A6", "alt-cote": "#3E5C76", "alt-face": "#2C4357",
+    "alt2-haut": "#7BB0A2", "alt2-cote": "#4F8A7C", "alt2-face": "#376258",
+    # éléments communs
+    "verre": "#CDD8E0", "verre-ombre": "#A9B6C0",
+    "roue": "#241F1C", "roue-cote": "#191512", "jante": "#8A939F",
+    "phare": "#FFF3CF", "feu": "#E5484D", "chrome": "#E8ECEF",
+    "sol": "#1B1F24",   # ombre portée (avec opacité faible)
 }
 
 # Voile de la carte héros (seul dégradé autorisé, §6.3) : couleur nuit en RGB + opacités

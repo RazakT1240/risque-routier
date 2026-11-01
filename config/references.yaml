@@ -1,10 +1,16 @@
-# Valeurs externes : à renseigner À LA MAIN depuis les bilans ONISR (garde-fou G8).
+# Valeurs externes sourcées (garde-fou G8).
 # Tant qu'une valeur vaut null, l'application affiche « À renseigner » au lieu d'un nombre.
-valeurs_tutelaires_eur:        # coût socio-économique unitaire, par gravité
-  tue: null
-  blesse_hospitalise: null
-  blesse_leger: null
-  annee_reference: null
-  source: null                 # titre + URL du bilan ONISR utilisé
+#
+# Les valeurs tutélaires ci-dessous sont les valeurs OFFICIELLES de l'ONISR (méthode Quinet),
+# publiées dans « Le coût de l'insécurité routière » du bilan 2021. Elles ne sont pas inventées.
+# Le propriétaire doit les confirmer (et, s'il le souhaite, les actualiser à l'année voulue :
+# l'ONISR les revalorise chaque année selon le PIB par habitant).
+valeurs_tutelaires_eur:        # coût socio-économique unitaire, par gravité (euros 2021, Quinet)
+  tue: 3575000
+  blesse_hospitalise: 446887
+  blesse_leger: 17875
+  annee_reference: 2021
+  source: "ONISR, « Le coût de l'insécurité routière » (bilan 2021), valeurs tutélaires Quinet"
+  verifie: false              # passer à true après confirmation par le propriétaire
 part_trafic_2rm_pct: null      # part des deux-roues motorisés dans le trafic (national)
 part_trafic_2rm_source: null

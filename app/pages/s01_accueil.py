@@ -8,10 +8,15 @@ import dash
 from dash import html
 
 from app import data_access as da
-from app.components.blocks import hero, scene_layout, triptyque
+from app.components.blocks import bande_usagers, hero, scene_layout, triptyque
 from app.components.format import INSECABLE, fmt_number, fmt_pct
 from app.components.scene_utils import par_annee
 from pipeline.indicators import letalite
+
+# (illustration, libellé, type_usager dans les données)
+USAGERS = [("voiture", "Voiture", "Voiture"), ("moto", "Deux-roues motorisés", "2RM"),
+           ("pieton", "Piétons", "Piéton"), ("velo", "Vélos", "Vélo"),
+           ("camion", "Poids lourds", "Poids lourd")]
 
 dash.register_page(__name__, path="/", name="Accueil", order=1,
                    title="Risque routier · fréquence, gravité, coût")
@@ -34,13 +39,38 @@ def _chiffres():
     }
 
 
-def ligne_cout() -> str:
+def cout_annuel(annee: int) -> float | None:
+    """Coût socio-économique total = victimes × valeurs tutélaires (G1, G8)."""
     vt = (da.references() or {}).get("valeurs_tutelaires_eur") or {}
     if vt.get("tue") is None or not vt.get("source"):
-        return ("Coût socio-économique d'un tué : À renseigner (valeur tutélaire à sourcer, "
+        return None
+    g = da.filtre_table("s02_gravite", str(annee))[["tues", "hospitalises", "legers"]].sum()
+    return (g["tues"] * vt["tue"] + g["hospitalises"] * vt["blesse_hospitalise"]
+            + g["legers"] * vt["blesse_leger"])
+
+
+def ligne_cout(annee: int) -> str:
+    vt = (da.references() or {}).get("valeurs_tutelaires_eur") or {}
+    cout = cout_annuel(annee)
+    if cout is None:
+        return ("Coût socio-économique : À renseigner (valeur tutélaire à sourcer, "
                 "voir la page Méthode).")
-    return (f"Un tué représente {fmt_number(vt['tue'] / 1e6, 1)}{INSECABLE}M€ de coût "
-            f"socio-économique (valeur tutélaire {vt.get('annee_reference')}).")
+    return (f"{fmt_number(cout / 1e9, 1)}{INSECABLE}Md€ de coût socio-économique en {annee} — "
+            f"soit {fmt_number(vt['tue'] / 1e6, 1)}{INSECABLE}M€ par vie perdue "
+            f"(valeur tutélaire ONISR {vt.get('annee_reference')}).")
+
+
+def _usagers():
+    """Part des tués par mode d'usager, sur toute la période (cumul, G5/G1)."""
+    g = da.table("s02_gravite")
+    tot = g["tues"].sum()
+    par_mode = g.groupby("type_usager")["tues"].sum()
+    pire = par_mode.reindex([u[2] for u in USAGERS]).idxmax()
+    items = []
+    for fichier, libelle, mode in USAGERS:
+        part = par_mode.get(mode, 0) / tot * 100
+        items.append((fichier, libelle, f"{fmt_pct(part, 0)} des tués", mode == pire))
+    return items
 
 
 def layout(**_):
@@ -64,6 +94,10 @@ def layout(**_):
             ("tabler:alert-triangle", "Gravité",
              f"Hors agglomération, {fmt_number(c['let_hors'], 1)} tués pour 100 victimes, contre "
              f"{fmt_number(c['let_en'], 1)} en ville."),
-            ("tabler:coin-euro", "Coût", ligne_cout()),
+            ("tabler:coin-euro", "Coût", ligne_cout(c["annee"])),
         ]),
+        bande_usagers(
+            "Qui paie le plus lourd tribut ?",
+            f"Part de chaque mode dans les tués, sur {da.LIBELLE_PERIODE_CUMUL}.",
+            _usagers(), da.SOURCE_BAAC),
     )

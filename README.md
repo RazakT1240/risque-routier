@@ -61,7 +61,7 @@ métropolitaine ou un département), conservés dans l'URL (`?annee=2025&dep=29`
 
 ```
 pipeline/   lecture brute, corrections, table usager enrichie, agrégats Parquet, GLM (indépendant de Dash)
-design/     tokens (source unique des couleurs), thème Mantine, templates Plotly, illustration du héros
+design/     tokens, thème Mantine, templates Plotly, illustration du héros, illustrations véhicules 3D (vehicules.py)
 app/        app.py, data_access.py (Parquet en cache), figures.py, components/, pages/, assets/
             echarts.py (jauges, rose, radar) ; ECharts 5.5.1 local dans assets/vendor/ (Apache-2.0)
             assistant.py (assistant RAG ancré aux données : questions en langage naturel)

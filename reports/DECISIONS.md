@@ -78,3 +78,15 @@ Format : décision — justification (une ligne).
 - Chaque réponse affiche aussi le **petit graphique** de la fiche (courbe annuelle, barres, palmarès),
   construit avec le thème courant et redessiné au changement clair/sombre.
 - Garde-fous : source et lien vers la scène sous chaque réponse ; question hors sujet → message « aucune réponse dans les données » (jamais d'invention). Tests dans `tests/test_assistant.py`.
+
+## Chute en euros, illustrations et couleurs (01/11/2026, décidé avec le propriétaire)
+- **Valeurs tutélaires renseignées** : ce ne sont pas des chiffres inventés mais les valeurs OFFICIELLES de
+  l'ONISR (méthode Quinet, « Le coût de l'insécurité routière », bilan 2021), vérifiées par recherche :
+  tué 3 575 000 €, blessé hospitalisé 446 887 €, blessé léger 17 875 €. `verifie: false` : à confirmer par le
+  propriétaire. Coût = victimes × valeurs (G1) ; 20,7 Md€ pour la métropole 2025.
+- **Illustrations véhicules** : SVG isométriques générés (`design/vehicules.py`), couleurs lues dans
+  `tokens.VEHICULE_PALETTE` (G9, aucun hexadécimal dans le générateur). Bande d'accueil informative
+  (part de tués par mode), pas décorative.
+- **Échelle séquentielle ambre** : auparavant elle finissait sur un rouge proche du rouge d'alerte, ce qui
+  brouillait G10 (heatmap « valeur haute » vs « ce que le titre désigne »). Passée en ambre/bronze de la
+  marque : le rouge d'alerte redevient unique et la marque entre dans les graphiques.

@@ -61,6 +61,29 @@ def triptyque(items: list[tuple[str, str, str]]) -> html.Div:
         ]) for icon, mot, ligne in items])
 
 
+def bande_usagers(titre: str, sous_titre: str, items: list[tuple[str, str, str, bool]],
+                  source: str) -> html.Section:
+    """Bande illustrée des usagers de la route : illustration « 3D » + part chiffrée (G1).
+
+    `items` = [(fichier_svg, libellé, valeur, alerte)] ; `alerte=True` met la carte en relief."""
+    cartes = [
+        html.Figure(className="usager" + (" usager-alerte" if alerte else ""), children=[
+            html.Img(src=f"/assets/vehicules/{fichier}.svg", className="usager-img",
+                     alt=f"Illustration : {libelle}"),
+            html.Figcaption(children=[
+                html.Span(libelle, className="usager-nom"),
+                html.Span(valeur, className="usager-val"),
+            ]),
+        ]) for fichier, libelle, valeur, alerte in items]
+    return html.Section(className="carte bande-usagers", **{"aria-label": titre}, children=[
+        html.Div(className="chart-head", children=[html.Div(children=[
+            html.H2(titre, className="h2"),
+            html.Div(sous_titre, className="caption", style={"marginTop": 4})])]),
+        html.Div(className="usagers-grille", children=cartes),
+        html.Div(className="chart-foot caption", children=f"Source : {source}"),
+    ])
+
+
 def scene_nav(precedente: tuple[str, str] | None, suivante: tuple[str, str] | None):
     """(libellé, href) pour chaque bouton."""
     return html.Nav(className="scene-nav", **{"aria-label": "Navigation entre scènes"},
