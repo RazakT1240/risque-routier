@@ -53,7 +53,7 @@ def _reflets(rng: random.Random) -> str:
     for x, couleur, op in ((VX - 22, P["phare"], 0.35), (VX - 6, P["phare"], 0.3),
                            (VX + 40, P["feu-arriere"], 0.28), (VX + 52, P["feu-arriere"], 0.24)):
         largeur = 3
-        for _ in range(26):
+        for _ in range(14):
             y = rng.uniform(HORIZON + 6, H)
             t = (y - HORIZON) / (H - HORIZON)
             xx = VX + (x - VX) * (1 + 6 * t) + rng.uniform(-4, 4) * t
@@ -92,7 +92,7 @@ def _pluie(rng: random.Random) -> str:
                        f'opacity="{op:.2f}"/>')
     bloc = "".join(gouttes)
     return (f'<g class="pluie">{bloc}</g>'
-            f'<g class="pluie" transform="translate(0 {H})">{bloc}</g>')
+            f'<g class="pluie" transform="translate(0 -{H})">{bloc}</g>')
 
 
 def build_svg(seed: int = 7) -> str:
@@ -115,6 +115,8 @@ aria-label="Route de campagne la nuit sous la pluie">
 <stop offset="0" stop-color="{P["chaussee-loin"]}"/><stop offset="1" stop-color="{P["chaussee"]}"/>
 </linearGradient>
 {halos}
+<filter id="flou" x="-20%" y="-5%" width="140%" height="110%">
+<feGaussianBlur stdDeviation="2.5 6"/></filter>
 <style>
 @media (prefers-reduced-motion: no-preference) {{
   .pluie-anim {{ animation: tombe 4s linear infinite; }}
@@ -130,7 +132,7 @@ aria-label="Route de campagne la nuit sous la pluie">
 {_ligne_bord(-210, 26, 0.35)}
 {_ligne_bord(W + 40, 26, 0.35)}
 {_tirets()}
-{_reflets(rng)}
+<g filter="url(#flou)">{_reflets(rng)}</g>
 {_feux()}
 <g class="pluie-anim">{_pluie(rng)}</g>
 </svg>"""

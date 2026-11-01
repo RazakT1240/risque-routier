@@ -25,21 +25,27 @@ def insight(texte) -> html.Aside:
         html.Div("Et alors ?", className="label"), html.P(texte)])
 
 
+def lien_bouton(texte: str, href: str, classe: str, icone_g: str | None = None,
+                icone_d: str | None = None) -> dcc.Link:
+    """Lien stylé en bouton : un seul arrêt de tabulation (pas de <a><button>)."""
+    return dcc.Link(href=href, className=f"btn {classe}", children=[
+        DashIconify(icon=icone_g, width=16) if icone_g else None, html.Span(texte),
+        DashIconify(icon=icone_d, width=16) if icone_d else None])
+
+
 def hero(image_src: str, surtitre: str, nombre: str, legende: str, sous_texte: str,
          bouton_href: str, credit: str) -> html.Section:
     return html.Section(
         className="hero", style={"backgroundImage": f"url('{image_src}')"},
-        role="img", **{"aria-label": f"{surtitre}. {nombre} {legende}. {sous_texte}"},
+        **{"aria-label": "Introduction"},
         children=[
             html.Div(className="hero-content", children=[
                 html.Div(surtitre, className="label"),
                 html.Div(nombre, className="hero-number"),
                 html.Div(legende, className="hero-legende"),
                 html.Div(sous_texte, className="hero-sub"),
-                html.Div(dcc.Link(dmc.Button(
-                    "Commencer", size="md",
-                    rightSection=DashIconify(icon="tabler:arrow-right", width=18)),
-                    href=bouton_href), style={"marginTop": 12}),
+                html.Div(lien_bouton("Commencer", bouton_href, "btn-primaire btn-lg",
+                                     icone_d="tabler:arrow-right"), style={"marginTop": 12}),
             ]),
             html.Div(credit, className="hero-credit"),
         ])
@@ -59,14 +65,29 @@ def scene_nav(precedente: tuple[str, str] | None, suivante: tuple[str, str] | No
     """(libellé, href) pour chaque bouton."""
     return html.Nav(className="scene-nav", **{"aria-label": "Navigation entre scènes"},
                     children=[
-        dcc.Link(dmc.Button(f"Scène précédente · {precedente[0]}", variant="outline",
-                            className="btn-precedent",
-                            leftSection=DashIconify(icon="tabler:arrow-left", width=16)),
-                 href=precedente[1]) if precedente else html.Span(),
-        dcc.Link(dmc.Button(f"Scène suivante · {suivante[0]}", variant="light",
-                            className="btn-suivant",
-                            rightSection=DashIconify(icon="tabler:arrow-right", width=16)),
-                 href=suivante[1]) if suivante else html.Span(),
+        lien_bouton(f"Scène précédente · {precedente[0]}", precedente[1], "btn-precedent",
+                    icone_g="tabler:arrow-left") if precedente else html.Span(),
+        lien_bouton(f"Scène suivante · {suivante[0]}", suivante[1], "btn-suivant",
+                    icone_d="tabler:arrow-right") if suivante else html.Span(),
+    ])
+
+
+def bascule_id(nom: str) -> dict:
+    """Identifiant à lire dans les callbacks : Input(bascule_id(nom), "value")."""
+    return {"type": "bascule", "index": nom}
+
+
+def bascule(nom: str, options: list[str], valeur: str, label: str) -> html.Div:
+    """SegmentedControl sur écran large, Select sous 768 px (pas de débordement sur mobile).
+
+    Le Select mobile recopie sa valeur dans le SegmentedControl (callback global), qui reste
+    la seule source lue par les callbacks."""
+    return html.Div(children=[
+        dmc.SegmentedControl(id=bascule_id(nom), data=options, value=valeur, visibleFrom="sm",
+                             **{"aria-label": label}),
+        dmc.Select(id={"type": "bascule-mobile", "index": nom}, data=options, value=valeur,
+                   hiddenFrom="sm", allowDeselect=False, comboboxProps={"withinPortal": True},
+                   **{"aria-label": label}),
     ])
 
 

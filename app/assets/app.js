@@ -1,13 +1,19 @@
 /* Comportements d'interface sans aller-retour serveur.
-   1. Carte KPI retournable : clic / toucher et Entrée / Espace basculent la classe « on ».
+   1. Carte KPI retournable : le survol (pointeur fin) est géré en CSS ; le toucher et
+      Entrée / Espace basculent la classe « on » (aria-pressed suit) ; quitter la carte
+      au clavier la remet au recto.
    2. Comptage animé des valeurs KPI, uniquement au premier affichage d'une scène (§9),
-      désactivé si prefers-reduced-motion. */
+      désactivé si prefers-reduced-motion.
+   3. Export PNG d'une figure sur le fond de surface du thème courant (pas de transparence). */
 (function () {
-  function basculer(carte) {
-    carte.classList.toggle("on");
+  function basculer(carte, etat) {
+    var on = typeof etat === "boolean" ? etat : !carte.classList.contains("on");
+    carte.classList.toggle("on", on);
+    carte.setAttribute("aria-pressed", on ? "true" : "false");
   }
 
-  document.addEventListener("click", function (e) {
+  document.addEventListener("pointerup", function (e) {
+    if (e.pointerType !== "touch" && e.pointerType !== "pen") { return; }
     var carte = e.target.closest && e.target.closest(".kpi-flip");
     if (carte) { basculer(carte); }
   });
@@ -16,6 +22,11 @@
     if (e.key !== "Enter" && e.key !== " ") { return; }
     var carte = e.target.classList && e.target.classList.contains("kpi-flip") ? e.target : null;
     if (carte) { e.preventDefault(); basculer(carte); }
+  });
+
+  document.addEventListener("focusout", function (e) {
+    var carte = e.target.classList && e.target.classList.contains("kpi-flip") ? e.target : null;
+    if (carte) { basculer(carte, false); }
   });
 
   var reduit = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -48,4 +59,12 @@
     valeurs.forEach(animer);
   });
   observateur.observe(document.documentElement, { childList: true, subtree: true });
+
+  window.routeExportPng = function (gd, nom) {
+    if (!gd || !window.Plotly) { return; }
+    var fond = getComputedStyle(document.documentElement).getPropertyValue("--bg-surface").trim();
+    var layout = Object.assign({}, gd.layout, { paper_bgcolor: fond, plot_bgcolor: fond });
+    window.Plotly.downloadImage({ data: gd.data, layout: layout },
+      { format: "png", filename: nom, scale: 2, width: gd.offsetWidth, height: gd.offsetHeight });
+  };
 })();

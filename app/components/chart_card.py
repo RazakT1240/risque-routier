@@ -47,7 +47,8 @@ def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *
                figure=None, hauteur: int = 340, puces: list | None = None,
                controles=None, corps=None, aria: str | None = None) -> html.Section:
     """`corps` remplace le graphique (ex. message « effectif trop faible »)."""
-    graphe = corps if corps is not None else dcc.Loading(
+    avec_graphe = corps is None
+    graphe = corps if not avec_graphe else dcc.Loading(
         type="dot", delay_show=300, color="var(--accent)",
         children=dcc.Graph(id=graph_id(nom), figure=figure, config=GRAPH_CONFIG,
                            style={"height": f"{hauteur}px"}, className="chart-graph"))
@@ -59,9 +60,11 @@ def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *
                 html.H2(titre, className="h2"),
                 html.Div(sous_titre, className="caption", style={"marginTop": 4}),
             ]),
-            menu_actions(nom),
+            menu_actions(nom) if avec_graphe else None,
+            html.Span(titre if isinstance(titre, str) else nom, hidden=True,
+                      id={"type": "cc-titre", "index": nom}) if avec_graphe else None,
         ]),
-        dmc.Group(gap=8, children=puces) if puces else None,
+        dmc.Group(id=f"{nom}-puces", gap=8, children=puces or []),
         controles,
         graphe,
         html.Div(className="chart-foot caption", children=[

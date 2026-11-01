@@ -74,6 +74,7 @@ def navbar() -> dmc.AppShellNavbar:
         html.Div(style={"height": 12}),
         *[dmc.NavLink(
             href=s["path"], active="exact", className="nav-link",
+            **{"aria-label": f"Scène {s['num']} : {s['nom']}"},
             label=html.Span(s["nom"]),
             leftSection=dmc.Group(gap=8, wrap="nowrap", children=[
                 html.Span(f"{s['num']:02d}", className="nav-num"),
@@ -81,3 +82,30 @@ def navbar() -> dmc.AppShellNavbar:
         ) for s in SCENES],
         html.Div(style={"flex": 1}),
     ]))
+
+
+def app_shell(contenu, annees, departements, annee_defaut) -> dmc.AppShell:
+    """AppShell : navbar 240 px dès 1200 px, icônes seules (72 px) de 768 à 1199 px,
+    burger sous 768 px (DESIGN §10)."""
+    return dmc.AppShell(
+        id="appshell", padding=0,
+        header={"height": 64},
+        navbar={"width": 240, "breakpoint": 768, "collapsed": {"mobile": True}},
+        children=[header(annees, departements, annee_defaut), navbar(),
+                  dmc.AppShellMain(contenu)])
+
+
+def register(app) -> None:
+    from dash import Input, Output, State
+
+    @app.callback(Output("appshell", "navbar"), Input("burger", "opened"),
+                  State("appshell", "navbar"))
+    def basculer_navbar(ouvert, nav):
+        nav["collapsed"] = {"mobile": not ouvert}
+        return nav
+
+    @app.callback(Output("burger", "opened"), Input("_pages_location", "pathname"),
+                  prevent_initial_call=True)
+    def fermer_burger(_):
+        """Après un choix de scène sur mobile, la navigation se referme."""
+        return False

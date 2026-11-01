@@ -39,9 +39,10 @@ def kpi_card(kpi_id: str, label: str, icon: str, valeur: str, *, deltas: list[di
     """`valeur` est déjà formatée (fmt_number / fmt_pct) ; `deltas` vient de format.delta.
     `compte` (entier) active le comptage animé au premier affichage (app.js)."""
     attrs = {"data-count": str(compte)} if compte is not None else {}
-    valeur_node = (dmc.Tooltip(label="Donnée indisponible", children=html.Span(
-        NA, className="kpi-value kpi-na"), withArrow=True)
-        if indisponible or valeur == NA else html.Div(valeur, className="kpi-value", **attrs))
+    na = indisponible or valeur == NA
+    valeur_node = (html.Div([html.Span(NA, className="kpi-value kpi-na"),
+                             html.Span(" Donnée indisponible", className="kpi-na-texte")])
+                   if na else html.Div(valeur, className="kpi-value", **attrs))
 
     recto = html.Div(className="kpi-face", children=[
         html.Div(className="kpi-head", children=[
@@ -52,9 +53,10 @@ def kpi_card(kpi_id: str, label: str, icon: str, valeur: str, *, deltas: list[di
         html.Div(className="kpi-leader", children=[
             DashIconify(icon=leader[0], width=14), html.Span(leader[1])]) if leader else None,
         sparkline(spark) if spark else html.Div(className="kpi-spark"),
-        html.Div(className="kpi-hint", children=[
+        html.Div(className="kpi-hint", **{"aria-hidden": "true"}, children=[
             DashIconify(icon="tabler:rotate-3d", width=12),
-            html.Span("Survoler pour l'explication")]),
+            html.Span("Survoler pour l'explication", className="hint-survol"),
+            html.Span("Toucher pour l'explication", className="hint-toucher")]),
     ])
     verso = html.Div(className="kpi-face kpi-back", children=[
         html.Div("Comment le lire", className="kpi-back-title"),
@@ -63,9 +65,15 @@ def kpi_card(kpi_id: str, label: str, icon: str, valeur: str, *, deltas: list[di
         html.Div(assureur, className="kpi-back-text"),
         html.Div(source, className="caption", style={"marginTop": "auto"}),
     ])
+    morceaux = [f"{label} : {'donnée indisponible' if na else valeur}."]
+    morceaux += [d["texte"].replace("▲", "hausse").replace("▼", "baisse") for d in deltas]
+    if leader:
+        morceaux.append("".join(x if isinstance(x, str) else str(x.children)
+                                for x in leader[1]))
+    morceaux.append(lire)
     return html.Div(
         id=kpi_id, className="kpi-flip", tabIndex=0, role="button",
-        **{"aria-label": aria or f"{label} : {valeur}. {lire}"},
+        **{"aria-label": aria or " ".join(morceaux), "aria-pressed": "false"},
         children=html.Div(className="kpi-flip-inner", children=[recto, verso]))
 
 

@@ -9,20 +9,26 @@ from __future__ import annotations
 import math
 
 NA = "—"
-MILLIERS = " "     # espace fine insécable
-INSECABLE = " "
-MOINS = "−"        # vrai signe moins
+MILLIERS = "\u202f"     # espace fine insécable
+INSECABLE = "\u00a0"
+MOINS = "\u2212"        # vrai signe moins
 
 
 def _manquant(x) -> bool:
-    return x is None or (isinstance(x, float) and math.isnan(x))
+    if x is None or isinstance(x, str):
+        return True
+    try:
+        return bool(math.isnan(float(x)))
+    except (TypeError, ValueError):
+        return True
 
 
-def fmt_number(x, decimals: int = 0, signe: bool = False) -> str:
+def fmt_number(x, decimals: int = 0, signe: bool = False, milliers: str = MILLIERS) -> str:
+    """`milliers=INSECABLE` pour les très grands corps (l'espace fine y devient invisible)."""
     if _manquant(x):
         return NA
-    txt = f"{abs(x):,.{decimals}f}".replace(",", MILLIERS).replace(".", ",")
-    if x < 0 and txt.strip("0, "):
+    txt = f"{abs(x):,.{decimals}f}".replace(",", milliers).replace(".", ",")
+    if x < 0 and txt.strip("0," + MILLIERS + INSECABLE):
         return MOINS + txt
     if signe and x > 0:
         return "+" + txt
