@@ -173,8 +173,15 @@ def courbes_age(classes, hommes, femmes, scheme: str, alerte_hommes=True) -> go.
                            showarrow=True, arrowhead=0, arrowcolor=t["text-secondary"], ax=40,
                            ay=-28, font=dict(size=12, color=t["text-primary"]))
     return _base(fig, scheme, hovermode="x unified", showlegend=False,
-                 margin=dict(l=8, r=70, t=28, b=8), xaxis=dict(type="category", tickangle=-45),
+                 margin=dict(l=8, r=70, t=28, b=8),
+                 xaxis=dict(type="category", tickvals=classes[::2], tickangle=0,
+                            ticktext=[c.split("-")[0] for c in classes[::2]],
+                            title=dict(text="Âge (ans)", font=dict(size=12))),
                  yaxis=dict(rangemode="tozero"))
+
+
+POSITIONS_ETIQUETTES = {"EDP": "bottom center", "Utilitaire": "top left", "Vélo": "top left",
+                        "Bus, car, tram": "top right", "Poids lourd": "top right"}
 
 
 def matrice_bulles(noms, x, y, tailles, alerte, scheme: str, lib_x: str, lib_y: str,
@@ -184,7 +191,8 @@ def matrice_bulles(noms, x, y, tailles, alerte, scheme: str, lib_x: str, lib_y: 
     ref = max(tailles) or 1
     couleurs = [t["grav-tue"] if n == alerte else t["data-neutre"] for n in noms]
     fig = go.Figure(go.Scatter(
-        x=x, y=y, mode="markers+text", text=noms, textposition="top center",
+        x=x, y=y, mode="markers+text", text=noms,
+        textposition=[POSITIONS_ETIQUETTES.get(n, "top center") for n in noms],
         textfont=dict(size=12, color=t["text-primary"]),
         marker=dict(size=[12 + 48 * (s / ref) ** 0.5 for s in tailles], color=couleurs,
                     opacity=0.85, line=dict(width=1, color=t["bg-surface"])),
@@ -193,16 +201,21 @@ def matrice_bulles(noms, x, y, tailles, alerte, scheme: str, lib_x: str, lib_y: 
                        "<br>Tués : %{customdata[0]:,.0f}<extra></extra>")))
     fig.add_vline(x=mx, line=dict(color=t["border"], width=1, dash="dot"))
     fig.add_hline(y=my, line=dict(color=t["border"], width=1, dash="dot"))
-    for txt, xa, ya, xan, yan in (("Rare et grave", 0, 1, "left", "top"),
-                                  ("Fréquent et grave", 1, 1, "right", "top"),
-                                  ("Rare et moins grave", 0, 0, "left", "bottom"),
-                                  ("Fréquent et moins grave", 1, 0, "right", "bottom")):
+    # Noms des quadrants dans la marge haute / basse, hors de la zone des bulles
+    for txt, xa, ya, xan, yan in (("↖ Rare et grave", 0, 1.0, "left", "bottom"),
+                                  ("Fréquent et grave ↗", 1, 1.0, "right", "bottom"),
+                                  ("↙ Rare et moins grave", 0, 0.0, "left", "top"),
+                                  ("Fréquent et moins grave ↘", 1, 0.0, "right", "top")):
         fig.add_annotation(**_annot(t, xa, ya, txt, t["text-muted"], xref="paper", yref="paper",
-                                    xanchor=xan, yanchor=yan))
-    return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=16, b=8),
-                 xaxis=dict(title=dict(text=lib_x, font=dict(size=12)), type="log",
-                            ticksuffix=" %", showgrid=False),
-                 yaxis=dict(title=dict(text=lib_y, font=dict(size=12)), ticksuffix=" %"))
+                                    xanchor=xan, yanchor=yan, yshift=4 if ya else -22))
+    graduations = [v for v in (0.5, 1, 2, 5, 10, 20, 50) if min(x) / 1.5 <= v <= max(x) * 1.5]
+    return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=28, b=40),
+                 xaxis=dict(title=dict(text=lib_x, font=dict(size=12), standoff=24), type="log",
+                            tickvals=graduations,
+                            ticktext=[fmt_pct(v, 0 if v >= 1 else 1) for v in graduations],
+                            showgrid=False),
+                 yaxis=dict(title=dict(text=lib_y, font=dict(size=12)), ticksuffix=" %",
+                            range=[0, max(y) * 1.2]))
 
 
 # --- Scène 05 ------------------------------------------------------------

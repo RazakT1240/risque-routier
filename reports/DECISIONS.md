@@ -31,5 +31,13 @@ Format : décision — justification (une ligne).
 - Retournement des KPI au clic / clavier par un script d'assets (`app/assets/app.js`) plutôt qu'un clientside_callback — même effet, sans aller-retour ni identifiant par carte.
 - Mini-courbes KPI : `dmc.Sparkline` en `var(--data-neutre)` + pastille `grav-tue` superposée pour le dernier point — suit le thème sans re-rendu.
 
+## Phase 4
+- Scène 04, matrice : axe Y = taux de gravité (tués + hospitalisés) / victimes au lieu de la létalité — en létalité, les 2RM (4,0) passent sous la voiture (4,9) ; le taux de gravité est un indicateur du BRIEF §3 et fait ressortir le constat réel (2RM 37,6 % vs voiture 27,9 %).
+- Scène 04, matrice : type « Autre » (quads, engins, tracteurs) exclu — catégorie hétérogène sans lecture tarifaire.
+- Scène 04, KPI 3 : la ligne leader donne la létalité des 2RM « sans équipement » (secu = 0) seulement si l'effectif ≥ 30 ; « Indéterminé » n'est pas compté comme sans casque.
+- Parts et rapports (part des accidents en agglo, ratio H/F, part des 2RM…) : variations affichées en neutre — ni favorables ni défavorables pour l'assureur ; les ▲▼ restent.
+- Titres-messages : générés au chargement depuis les données nationales cumulées ; les KPI et graphiques suivent les filtres.
+
 ## Constats contraires aux hypothèses (G3)
 - Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,93 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.
+- Scène 04 : la létalité des 2RM (4,0 tués / 100 victimes) est inférieure à celle des occupants de voiture (4,9) ; c'est sur le taux de gravité que les 2RM ressortent.
