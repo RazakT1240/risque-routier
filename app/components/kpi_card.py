@@ -17,7 +17,7 @@ CLASSE_SENS = {"defavorable": "delta-hausse", "favorable": "delta-baisse",
                "neutre": "delta-neutre"}
 
 
-def sparkline(valeurs: list, hauteur: int = 28) -> html.Div:
+def sparkline(valeurs: list, hauteur: int = 24) -> html.Div:
     """Mini-courbe neutre, dernier point en rouge gravité (pastille superposée)."""
     vals = [v for v in valeurs if v is not None]
     if len(vals) < 2:
@@ -28,7 +28,8 @@ def sparkline(valeurs: list, hauteur: int = 28) -> html.Div:
     return html.Div(className="kpi-spark spark-wrap", children=[
         dmc.Sparkline(data=vals, h=hauteur, color="var(--data-neutre)", curveType="monotone",
                       strokeWidth=1.5, fillOpacity=0, withGradient=False),
-        html.Span(className="spark-dot", style={"top": f"calc({(1 - y) * 100:.1f}% - 3px)"}),
+        # Recharts laisse ~2 px de marge haute et basse : pastille centrée sur le dernier point
+        html.Span(className="spark-dot", style={"top": f"{2 + (1 - y) * (hauteur - 4) - 3:.1f}px"}),
     ])
 
 

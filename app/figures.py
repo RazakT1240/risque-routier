@@ -367,14 +367,14 @@ def petits_multiples(annees, series: dict[str, list], alerte: str, scheme: str,
                       row=r, col=c)
         fig.add_trace(go.Scatter(x=[annees[-1]], y=[vals[-1]], mode="markers+text",
                                  marker=dict(color=coul, size=6), text=[fmt_number(vals[-1])],
-                                 textposition="middle left", textfont=dict(size=11, color=coul),
+                                 textposition="top left", textfont=dict(size=11, color=coul),
                                  hoverinfo="skip"), row=r, col=c)
         fig.add_hline(y=100, line=dict(color=t["border"], width=1, dash="dot"), row=r, col=c)
         fig.add_vrect(x0=2019.5, x1=2020.5, fillcolor=t["data-neutre-clair"], opacity=0.35,
                       line_width=0, layer="below", row=r, col=c)
     fig.update_annotations(font=dict(family=FONT_SERIF, size=14, color=t["text-primary"]))
     fig.update_xaxes(dtick=3, tickfont=dict(size=10))
-    fig.update_yaxes(range=[0, vmax * 1.12], tickfont=dict(size=10), nticks=4)
+    fig.update_yaxes(range=[0, vmax * 1.22], tickfont=dict(size=10), nticks=4)
     return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=28, b=8))
 
 
@@ -394,10 +394,10 @@ def pareto(segments, parts, cumul, seuil, scheme: str) -> go.Figure:
         x=segments, y=cumul, mode="lines+markers", line=dict(color=t["text-primary"], width=2),
         marker=dict(size=5), hovertemplate="Cumul : %{y:.1f} %<extra></extra>"))
     fig.add_hline(y=seuil, line=dict(color=t["grav-tue"], width=1.5, dash="dash"))
-    fig.add_annotation(**_annot(t, n80, cumul[n80],
+    fig.add_annotation(**_annot(t, n80, seuil,
                                 f"<b>{n80 + 1} segments = {fmt_pct(cumul[n80], 0)}</b>",
-                                t["grav-tue"], xanchor="left", yanchor="bottom", xshift=8,
-                                yshift=4))
+                                t["grav-tue"], xanchor="left", yanchor="top", xshift=10,
+                                yshift=-6))
     return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=16, b=8),
                  xaxis=dict(tickangle=-35, tickfont=dict(size=11)),
                  yaxis=dict(range=[0, 105], ticksuffix=" %"))
