@@ -35,6 +35,8 @@ app = Dash(__name__, use_pages=True, pages_folder=str(HERE / "pages"),
            title="Risque routier · fréquence, gravité, coût",
            update_title=None, suppress_callback_exceptions=True)
 server = app.server
+# Langue du document (lecteurs d'écran, G12)
+app.index_string = app.index_string.replace("<html>", '<html lang="fr">', 1)
 
 ANNEES_VALIDES = {str(a) for a in da.annees(da.PERIODE_CUMUL)} | {da.PERIODE_CUMUL}
 DEPS_VALIDES = {d["dep"] for d in da.departements_metropole()} | {da.TERRITOIRE_FRANCE}

@@ -9,7 +9,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-LARGEURS = {"1440": (1440, 900), "390": (390, 844)}
+LARGEURS = {"1440": (1440, 900), "1024": (1024, 768), "390": (390, 844)}
 SCHEMES = ("light", "dark")
 
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import dash
 import pandas as pd
 from dash import Output, callback, html
@@ -26,7 +28,7 @@ A0 = da.PREMIERE_ANNEE
 
 
 def victimes_par_type(dep) -> pd.DataFrame:
-    g = da.filtrer(da.table("s02_gravite"), dep=dep, toutes_annees=True)
+    g = da.filtre_table("s02_gravite", dep=dep, toutes_annees=True)
     return g.pivot_table(index="annee", columns="type_usager", values="victimes",
                          aggfunc="sum", observed=True).reindex(C.ANNEES).fillna(0)
 
@@ -82,7 +84,7 @@ def chapeau():
 
 
 def _pareto(periode, dep):
-    g = da.filtrer(da.table("s02_gravite"), periode, dep).groupby(
+    g = da.filtre_table("s02_gravite", periode, dep).groupby(
         ["type_usager", "agg_lib"], observed=True)[["tues", "hospitalises", "legers"]].sum()
     vt = poids_pareto()
     if vt:
@@ -111,7 +113,8 @@ def et_alors():
     n = int((g["cumul"] < SEUIL_PARETO).sum()) + 1
     top = g.iloc[0]["lib"]
     nb = len(da.table("s02_gravite").groupby(["type_usager", "agg_lib"], observed=True))
-    return (f"{n} segments sur {nb} concentrent {fmt_pct(g['cumul'].iloc[n - 1], 0)} de la "
+    part = fmt_pct(g["cumul"].iloc[n - 1], 0)
+    return (f"Sur {da.LIBELLE_PERIODE_CUMUL}, {n} segments sur {nb} concentrent {part} de la "
             f"gravité, emmenés par « {top} » : c'est là que tarification fine et prévention "
             "rapportent le plus. Les engins de déplacement personnel, encore marginaux, sont à "
             "surveiller.")
@@ -176,7 +179,7 @@ def kpis(filtres, scheme):
 
     s2rm = []
     for a in C.ANNEES:
-        ta = da.filtrer(da.table("s02_gravite"), str(a), dep).groupby(
+        ta = da.filtre_table("s02_gravite", str(a), dep).groupby(
             "type_usager", observed=True)["tues"].sum()
         s2rm.append(ta.get("2RM", 0) / ta.sum() * 100 if ta.sum() >= SEUIL else None)
     s2rm = pd.Series(s2rm, index=C.ANNEES, dtype=float)
@@ -214,18 +217,7 @@ def kpis(filtres, scheme):
           Output("s06-multiples-titre", "children"), *ENTREES)
 def graphes(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
-    v = victimes_par_type(dep)
-    series = {c: [round(x, 1) for x in base_100(v[c], v[c][A0])]
-              for c in C.TYPE_USAGER_ORDRE if c in v.columns and v[c][A0] >= SEUIL}
-    titre_m = "Victimes par mode de déplacement, base 100 en 2019"
-    if series:
-        alerte = max(series, key=lambda c: series[c][-1])
-        fig_m = F.petits_multiples(C.ANNEES, series, alerte, scheme)
-        if series[alerte][-1] > 110:
-            titre_m = (f"Les victimes {NOMS[alerte]} progressent le plus "
-                       f"(indice {fmt_number(series[alerte][-1])})")
-    else:
-        fig_m = F.message_figure("Effectifs trop faibles par type d'usager", scheme)
+    fig_m, titre_m = petits_multiples(dep, scheme)
     g, total = _pareto(periode, dep)
     if total < SEUIL or g.empty:
         fig_p = F.message_figure("Moins de 30 victimes graves sur ce périmètre", scheme)
@@ -234,6 +226,22 @@ def graphes(filtres, scheme):
                          g["cumul"].round(2).tolist(), SEUIL_PARETO, scheme)
     return (fig_m, [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)],
             fig_p, [chip_filtre(x) for x in da.puces_filtres(periode, dep)], titre_m)
+
+
+@lru_cache(maxsize=256)
+def petits_multiples(dep: str, scheme: str):
+    """Ne dépend que du territoire et du thème : mis en cache (figure lourde à construire)."""
+    v = victimes_par_type(dep)
+    series = {c: [round(x, 1) for x in base_100(v[c], v[c][A0])]
+              for c in C.TYPE_USAGER_ORDRE if c in v.columns and v[c][A0] >= SEUIL}
+    titre_m = "Victimes par mode de déplacement, base 100 en 2019"
+    if not series:
+        return F.message_figure("Effectifs trop faibles par type d'usager", scheme), titre_m
+    alerte = max(series, key=lambda c: series[c][-1])
+    if series[alerte][-1] > 110:
+        titre_m = (f"Les victimes {NOMS[alerte]} progressent le plus "
+                   f"(indice {fmt_number(series[alerte][-1])})")
+    return F.petits_multiples(C.ANNEES, series, alerte, scheme), titre_m
 
 
 GROUPES_MODES = {"Voiture": ["Voiture"], "2RM": ["2RM"], "Piéton": ["Piéton"], "Vélo": ["Vélo"],
@@ -245,7 +253,7 @@ GROUPES_MODES = {"Voiture": ["Voiture"], "2RM": ["2RM"], "Piéton": ["Piéton"],
           Output("s06-modes-titre", "children"), *ENTREES)
 def repartition_modes(filtres, scheme):
     _, dep, scheme = lire(filtres, scheme)
-    g = da.filtrer(da.table("s02_gravite"), dep=dep, toutes_annees=True).pivot_table(
+    g = da.filtre_table("s02_gravite", dep=dep, toutes_annees=True).pivot_table(
         index="annee", columns="type_usager", values="tues", aggfunc="sum",
         observed=True).reindex(C.ANNEES).fillna(0)
     tot = g.sum(axis=1)

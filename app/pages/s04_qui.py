@@ -28,9 +28,9 @@ JEUNES = {"15-19", "20-24", "25-29"}
 
 def taux_age(periode, dep) -> pd.DataFrame:
     """Victimes graves pour 100 000 hab. par sexe × classe d'âge (masqué sous le seuil)."""
-    s = da.filtrer(da.table("s04_age"), periode, dep).groupby(
+    s = da.filtre_table("s04_age", periode, dep).groupby(
         ["sexe_lib", "classe_age"], observed=True)[["graves", "tues"]].sum().reset_index()
-    pop = da.filtrer(da.table("expo_population"), periode, dep).groupby(
+    pop = da.filtre_table("expo_population", periode, dep).groupby(
         ["sexe", "classe_age"], observed=True)["population"].sum().reset_index().rename(
         columns={"sexe": "sexe_lib"})
     m = pop.merge(s, on=["sexe_lib", "classe_age"], how="left").fillna({"graves": 0, "tues": 0})
@@ -40,7 +40,7 @@ def taux_age(periode, dep) -> pd.DataFrame:
 
 
 def par_type(periode, dep) -> pd.DataFrame:
-    g = da.filtrer(da.table("s02_gravite"), periode, dep).groupby(
+    g = da.filtre_table("s02_gravite", periode, dep).groupby(
         "type_usager", observed=True)[["victimes", "tues", "hospitalises", "graves"]].sum()
     # Parts calculées sur l'ensemble des victimes, avant d'écarter « Autre » et les petits types
     g["part_victimes"] = g["victimes"] / g["victimes"].sum() * 100
@@ -66,10 +66,11 @@ def titre():
     pic, g, _ = _national()
     tete = type_en_tete(g)
     if pic["sexe_lib"] == "Homme" and str(pic["classe_age"]) in JEUNES and tete == "2RM":
-        return ("Les jeunes hommes et les deux-roues", "concentrent les blessures graves.")
+        return ("Les jeunes hommes et les deux-roues", "sont les plus exposés aux blessures "
+                "graves.")
     sexe = "hommes" if pic["sexe_lib"] == "Homme" else "femmes"
     return (f"Les {sexe} de {str(pic['classe_age']).replace('-', '–')} ans",
-            "concentrent les blessures graves.")
+            "sont les plus exposés aux blessures graves.")
 
 
 def chapeau():
@@ -124,12 +125,23 @@ def layout(**_):
                        da.SOURCE_BAAC, "taux de gravité = (tués + hospitalisés) / victimes ; "
                        "cases sous 30 victimes grisées", hauteur=380),
         ]),
+        html.Div(className="grille-2", children=[
+            chart_card("s04-pyramide", "La pyramide des âges des tués",
+                       "Tués par million d'habitants et par an, hommes à gauche, femmes à droite.",
+                       f"{da.SOURCE_BAAC} ; {da.SOURCE_INSEE}",
+                       "tués / population de la classe d'âge et du sexe × 1 000 000, par an ; "
+                       "classes sous 30 tués non affichées", hauteur=440),
+            chart_card("s04-treemap", "Où se concentrent les tués : mode × route",
+                       "Surface : nombre de tués ; couleur : létalité (plus foncé = plus mortel).",
+                       da.SOURCE_BAAC, "létalité = tués / victimes × 100 ; croisements sous 30 "
+                       "victimes exclus", hauteur=440),
+        ]),
         html.Div(className="grille-2-1", children=[
             chart_card("s04-radar", "Le contexte aggrave-t-il autant tous les modes ?",
                        "Taux de gravité du mode choisi (rouge) et de l'ensemble des usagers "
                        "(gris), selon le moment et le lieu.", da.SOURCE_BAAC,
                        "taux de gravité = (tués + hospitalisés) / victimes ; contextes sous 30 "
-                       "victimes à zéro", hauteur=400,
+                       "victimes non tracés", hauteur=400,
                        controles=dmc.Select(id="s04-mode", data=RADAR_MODES, value="2RM",
                                             allowDeselect=False, w=220,
                                             comboboxProps={"withinPortal": True},
@@ -148,8 +160,8 @@ def _series(dep):
     """Séries annuelles des quatre KPI (pour les mini-courbes et les variations)."""
     ratio, part2rm, part65 = [], [], []
     for a in C.ANNEES:
-        s = da.filtrer(da.table("s04_age"), str(a), dep)
-        pop = da.filtrer(da.table("expo_population"), str(a), dep).groupby("sexe")[
+        s = da.filtre_table("s04_age", str(a), dep)
+        pop = da.filtre_table("expo_population", str(a), dep).groupby("sexe")[
             "population"].sum()
         th = s[s["sexe_lib"] == "Homme"]["tues"].sum()
         tf = s[s["sexe_lib"] == "Femme"]["tues"].sum()
@@ -171,8 +183,8 @@ def kpis(filtres, scheme):
     m = taux_age(periode, dep)
     valides = m.dropna(subset=["taux"])
     s_ratio, s_2rm, s_65 = _series(dep)
-    s = da.filtrer(da.table("s04_age"), periode, dep)
-    pop = da.filtrer(da.table("expo_population"), periode, dep).groupby("sexe")["population"].sum()
+    s = da.filtre_table("s04_age", periode, dep)
+    pop = da.filtre_table("expo_population", periode, dep).groupby("sexe")["population"].sum()
     src = f"Source : {da.SOURCE_BAAC} ; {da.SOURCE_INSEE} · {da.libelle_territoire(dep)}."
 
     # 1. Classe d'âge au taux de victimes graves le plus élevé
@@ -215,7 +227,7 @@ def kpis(filtres, scheme):
     # 3. Part des 2RM parmi les tués
     tt = s.groupby("type_usager", observed=True)["tues"].sum()
     part2rm = tt.get("2RM", 0) / tt.sum() * 100 if tt.sum() >= SEUIL else None
-    casque = da.filtrer(da.table("s04_casque"), periode, dep).groupby(
+    casque = da.filtre_table("s04_casque", periode, dep).groupby(
         "casque", observed=True)[["tues", "victimes"]].sum()
     leader3 = None
     if "Aucun équipement" in casque.index and casque.loc["Aucun équipement", "victimes"] >= SEUIL:
@@ -321,18 +333,17 @@ def boites_et_matrice(filtres, scheme):
         fig_b = F.message_figure("Effectifs trop faibles", scheme)
         titre_b = "L'âge des tués selon le mode de déplacement"
     # Matrice mode × tranche d'âge (taux de gravité), filtrable
-    s = da.filtrer(da.table("s04_age"), periode, dep)
-    s = s.assign(classe=s["classe_age"].astype(str))
-    z, masque = [], []
-    for mode in MODES_MATRICE:
-        sm = s[s["type_usager"] == mode]
-        lz, lm = [], []
-        for cls in TRANCHES.values():
-            ss = sm[sm["classe"].isin(cls)][["graves", "victimes"]].sum()
-            lz.append(ss["graves"] / ss["victimes"] * 100 if ss["victimes"] else float("nan"))
-            lm.append(ss["victimes"] < SEUIL)
-        z.append(lz)
-        masque.append(lm)
+    s = da.filtre_table("s04_age", periode, dep)
+    vers_tranche = {c: tr for tr, classes in TRANCHES.items() for c in classes}
+    agg = (s.assign(tranche=s["classe_age"].astype(str).map(vers_tranche))
+           .groupby(["type_usager", "tranche"], observed=True)[["graves", "victimes"]].sum())
+    agg = agg.reindex(pd.MultiIndex.from_product([MODES_MATRICE, list(TRANCHES)]),
+                      fill_value=0)
+    vict = agg["victimes"].to_numpy().reshape(len(MODES_MATRICE), len(TRANCHES))
+    grav = agg["graves"].to_numpy().reshape(len(MODES_MATRICE), len(TRANCHES))
+    with np.errstate(invalid="ignore", divide="ignore"):
+        z = (grav / vict * 100).tolist()
+    masque = (vict < SEUIL).tolist()
     puces_m = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
     if all(all(lm) for lm in masque):
         return (fig_b, puces_b, titre_b,
@@ -361,7 +372,7 @@ def _gravites(df):
     out = []
     for _, col, val in CONTEXTES:
         d = df[df[col] == val][["graves", "victimes"]].sum()
-        out.append(float(d["graves"] / d["victimes"] * 100) if d["victimes"] >= SEUIL else 0.0)
+        out.append(float(d["graves"] / d["victimes"] * 100) if d["victimes"] >= SEUIL else None)
     return out
 
 
@@ -372,7 +383,7 @@ def _gravites(df):
 def radar_et_jauge(mode, filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
     mode = mode or "2RM"
-    c = da.filtrer(da.table("s04_contexte"), periode, dep)
+    c = da.filtre_table("s04_contexte", periode, dep)
     puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
     tk = tokens(scheme)
     g_mode, g_tous = _gravites(c[c["type_usager"] == mode]), _gravites(c)
@@ -397,3 +408,57 @@ def radar_et_jauge(mode, filtres, scheme):
                         decimals=0)
         titre_j = f"{mode} : {fmt_pct(gm, 0)} des victimes gravement atteintes"
     return fig_r, puces, titre_r, fig_j, puces, titre_j
+
+
+MODES_TREEMAP = ["Voiture", "2RM", "Piéton", "Vélo", "EDP", "Utilitaire", "Poids lourd"]
+
+
+@callback(Output(graph_id("s04-pyramide"), "figure"), Output("s04-pyramide-puces", "children"),
+          Output("s04-pyramide-titre", "children"), Output(graph_id("s04-treemap"), "figure"),
+          Output("s04-treemap-puces", "children"), Output("s04-treemap-titre", "children"),
+          *ENTREES)
+def pyramide_et_treemap(filtres, scheme):
+    periode, dep, scheme = lire(filtres, scheme)
+    puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
+    # Pyramide : tués par million d'habitants, par sexe et classe d'âge
+    s = da.filtre_table("s04_age", periode, dep).groupby(
+        ["sexe_lib", "classe_age"], observed=True)["tues"].sum()
+    pop = da.filtre_table("expo_population", periode, dep).groupby(
+        ["sexe", "classe_age"], observed=True)["population"].sum()
+    classes = list(reversed(C.CLASSES_AGE))
+    def taux(sexe):
+        out = []
+        for c in classes:
+            n = s.get((sexe, c), 0)
+            p = pop.get((sexe, c), 0)
+            out.append(n / p * 1e6 if p and n >= SEUIL else None)
+        return out
+    h, f = taux("Homme"), taux("Femme")
+    if all(v is None for v in h + f):
+        fig_p = F.message_figure("Moins de 30 tués par classe : pyramide non affichée", scheme)
+        titre_p = "La pyramide des âges des tués"
+    else:
+        fig_p = F.pyramide([c.replace("-", "–") for c in classes], h, f, scheme,
+                           "tués / million d'hab.")
+        valides = [(v, c, "hommes") for v, c in zip(h, classes, strict=True) if v] + \
+                  [(v, c, "femmes") for v, c in zip(f, classes, strict=True) if v]
+        v, c, qui = max(valides)
+        titre_p = (f"Pic chez les {qui} de {c.replace('-', '–')} ans : "
+                   f"{fmt_number(v, 0)} tués par million d'habitants et par an")
+    # Treemap : tués par mode puis par type de route, couleur = létalité
+    g = da.filtre_table("s02_gravite", periode, dep).groupby(
+        ["type_usager", "catr_groupe"], observed=True)[["tues", "victimes"]].sum().reset_index()
+    g = g[g["type_usager"].astype(str).isin(MODES_TREEMAP) & (g["victimes"] >= SEUIL)
+          & (g["tues"] > 0)]
+    if g.empty:
+        return (fig_p, puces, titre_p,
+                F.message_figure("Effectifs trop faibles par croisement", scheme), puces,
+                "Où se concentrent les tués : mode × route")
+    let = (g["tues"] / g["victimes"] * 100).round(2)
+    fig_t = F.treemap(g["type_usager"].astype(str).tolist(), g["catr_groupe"].astype(str).tolist(),
+                      g["tues"].astype(float).tolist(), let.tolist(), scheme, "Tués",
+                      "Létalité (tués / 100 victimes)")
+    top = g.loc[g["tues"].idxmax()]
+    titre_t = (f"{top['type_usager']} sur {str(top['catr_groupe']).lower()} : "
+               f"{fmt_pct(top['tues'] / g['tues'].sum() * 100, 0)} des tués")
+    return fig_p, puces, titre_p, fig_t, puces, titre_t

@@ -7,7 +7,7 @@ Les formules d'indicateurs viennent de pipeline.indicators (définition unique).
 from __future__ import annotations
 
 import json
-from functools import cache
+from functools import cache, lru_cache
 
 import pandas as pd
 import yaml
@@ -86,9 +86,17 @@ def filtrer(df: pd.DataFrame, periode: str | None = None, dep: str | None = None
     return df[masque]
 
 
+@lru_cache(maxsize=512)
+def filtre_table(nom: str, periode: str | None = None, dep: str | None = None,
+                 toutes_annees: bool = False) -> pd.DataFrame:
+    """Table filtrée mise en cache (plusieurs callbacks d'une scène partagent les mêmes filtres).
+    Le résultat ne doit pas être modifié en place."""
+    return filtrer(table(nom), periode, dep, toutes_annees)
+
+
 def population(periode: str | None, dep: str | None) -> float:
     """Personnes-années sur la période (somme des populations annuelles)."""
-    return float(filtrer(table("pop_dep"), periode, dep)["population"].sum())
+    return float(filtre_table("pop_dep", periode, dep)["population"].sum())
 
 
 def population_par_annee(dep: str | None) -> pd.Series:

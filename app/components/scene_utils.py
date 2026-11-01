@@ -22,7 +22,7 @@ def lire(filtres: dict | None, scheme: str | None):
 
 def par_annee(nom: str, dep: str, cols: list[str], **filtres_col) -> pd.DataFrame:
     """Somme par année (toutes années) pour un territoire, colonnes `cols`."""
-    df = da.filtrer(da.table(nom), dep=dep, toutes_annees=True)
+    df = da.filtre_table(nom, dep=dep, toutes_annees=True)
     for col, val in filtres_col.items():
         df = df[df[col] == val]
     out = df.groupby("annee")[cols].sum().reindex(C.ANNEES, fill_value=0)

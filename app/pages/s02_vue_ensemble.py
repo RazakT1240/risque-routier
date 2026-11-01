@@ -64,7 +64,8 @@ def et_alors():
     let0, let1 = letalite(s["tues"][a0], s["victimes"][a0]), letalite(s["tues"][a1],
                                                                        s["victimes"][a1])
     return (f"Moins de victimes mais autant de morts : la létalité passe de "
-            f"{fmt_number(let0, 1)} à {fmt_number(let1, 1)} tués pour 100 victimes. Pour un "
+            f"{fmt_number(let0, 1)} en {da.PREMIERE_ANNEE} à {fmt_number(let1, 1)} en "
+            f"{da.DERNIERE_ANNEE} tués pour 100 victimes. Pour un "
             "assureur, la gravité moyenne d'un sinistre corporel augmente : la fréquence seule ne "
             "suffit plus à suivre la sinistralité.")
 
@@ -101,6 +102,10 @@ def layout(**_):
                        "Tués pour 100 victimes ; repère noir : niveau de 2019.", da.SOURCE_BAAC,
                        "létalité = tués / victimes × 100", hauteur=300),
         ]),
+        chart_card("s02-entonnoir", "De l'accident au décès",
+                   "Accidents corporels, victimes, victimes tuées ou hospitalisées, tués.",
+                   da.SOURCE_BAAC, "chaque étape est un sous-ensemble de la précédente "
+                   "(échelle logarithmique)", hauteur=280),
         insight(et_alors()),
         scene_nav(*voisines(NUM)),
     )
@@ -111,7 +116,7 @@ def kpis(filtres, scheme):
     periode, dep, _ = lire(filtres, scheme)
     ans = da.annees(periode)
     s = par_annee("s02_gravite", dep, COLS)
-    g = da.filtrer(da.table("s02_gravite"), periode, dep)
+    g = da.filtre_table("s02_gravite", periode, dep)
     pop = da.population(periode, dep)
     pop_an = da.population_par_annee(dep)
     tues, hosp, vict = (float(s.loc[ans, c].sum()) for c in ("tues", "hospitalises", "victimes"))
@@ -238,8 +243,8 @@ def evolution_et_repartition(filtres, scheme):
     if let.notna().sum() < 2:
         fig_l = F.message_figure("Moins de 30 victimes par an : létalité non affichée", scheme)
     else:
-        fig_l = F.courbe_annotee(C.ANNEES, let.round(2).tolist(), scheme,
-                                 unite="tués / 100 victimes")
+        fig_l = F.courbe_annotee(C.ANNEES, let.tolist(), scheme, unite="tués / 100 victimes",
+                                 points=True)
     ans = da.annees(periode)
     tot = s.loc[ans]
     vals = [float(tot["tues"].sum()), float(tot["hospitalises"].sum()),
@@ -269,16 +274,21 @@ MOIS_NOMS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "
 def saisonnalite_et_jauge(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
     puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
-    m = da.filtrer(da.table("s02_mois"), periode, dep).groupby("mois")["tues"].sum().reindex(
+    m = da.filtre_table("s02_mois", periode, dep).groupby("mois")["tues"].sum().reindex(
         range(1, 13), fill_value=0)
-    if m.sum() < SEUIL:
-        fig_r = F.message_figure("Moins de 30 tués sur ce périmètre", scheme)
+    if m.sum() < SEUIL or m.min() == 0:
+        fig_r = (F.message_figure("Moins de 30 tués sur ce périmètre", scheme) if m.sum() < SEUIL
+                 else F.rose_mois(m.astype(int).tolist(), scheme))
         titre_r = "Saisonnalité des tués"
     else:
         fig_r = F.rose_mois(m.astype(int).tolist(), scheme)
         mmax, mmin = int(m.idxmax()), int(m.idxmin())
-        titre_r = (f"{MOIS_NOMS[mmax - 1].capitalize()} compte {fmt_number(m.max() / m.min(), 1)}"
-                   f" fois plus de tués que {MOIS_NOMS[mmin - 1]}")
+        if m.min() >= SEUIL:
+            titre_r = (f"{MOIS_NOMS[mmax - 1].capitalize()} compte "
+                       f"{fmt_number(m.max() / m.min(), 1)} fois plus de tués que "
+                       f"{MOIS_NOMS[mmin - 1]}")
+        else:
+            titre_r = f"Le mois le plus meurtrier : {MOIS_NOMS[mmax - 1]}"
     s = par_annee("s02_gravite", dep, COLS)
     ans = da.annees(periode)
     vict = s.loc[ans, "victimes"].sum()
@@ -293,3 +303,22 @@ def saisonnalite_et_jauge(filtres, scheme):
         fig_j = F.jauge(let, ref, 0, max(10, let * 1.4), scheme, lib_ref=f"{a0}",
                         decimals=1)
     return fig_r, puces, titre_r, fig_j, puces
+
+
+@callback(Output(graph_id("s02-entonnoir"), "figure"), Output("s02-entonnoir-puces", "children"),
+          Output("s02-entonnoir-titre", "children"), *ENTREES)
+def entonnoir_gravite(filtres, scheme):
+    periode, dep, scheme = lire(filtres, scheme)
+    acc = float(da.filtre_table("s02_accidents", periode, dep)["accidents"].sum())
+    g = da.filtre_table("s02_gravite", periode, dep)[["victimes", "tues", "hospitalises"]].sum()
+    puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
+    if g["victimes"] < SEUIL:
+        return (F.message_figure("Moins de 30 victimes sur ce périmètre", scheme), puces,
+                "De l'accident au décès")
+    etapes = ["Accidents corporels", "Victimes", "Tués ou hospitalisés", "Tués"]
+    valeurs = [acc, float(g["victimes"]), float(g["tues"] + g["hospitalises"]), float(g["tues"])]
+    titre = "De l'accident au décès"
+    if g["tues"]:
+        titre = (f"{fmt_number(g['victimes'] / acc, 2)} victimes par accident ; "
+                 f"une victime sur {fmt_number(g['victimes'] / g['tues'], 0)} est tuée")
+    return F.entonnoir(etapes, valeurs, scheme), puces, titre

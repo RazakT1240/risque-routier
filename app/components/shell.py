@@ -20,24 +20,69 @@ def filtre(label: str, icon: str, composant) -> html.Div:
         composant])
 
 
-def filtres(annees: list[int], departements: list[dict], annee_defaut: int) -> dmc.Group:
-    periode = dmc.Select(
-        id="filtre-periode", size="xs", w=150, allowDeselect=False,
-        value=str(annee_defaut), comboboxProps={"withinPortal": True},
-        data=[{"value": PERIODE_CUMUL, "label": f"{annees[0]}–{annees[-1]} (cumul)"}]
-        + [{"value": str(a), "label": str(a)} for a in reversed(annees)],
+def filtres(annees: list[int], departements: list[dict], annee_defaut: int) -> dmc.Popover:
+    """Bouton-résumé des filtres (période · territoire) qui ouvre un panneau :
+    années en sélecteur segmenté, recherche de département, raccourcis, réinitialisation.
+    Le panneau reste monté (keepMounted) : les callbacks lisent toujours les deux contrôles."""
+    periode = dmc.SegmentedControl(
+        id="filtre-periode", value=str(annee_defaut), fullWidth=True, size="xs",
+        data=[{"value": PERIODE_CUMUL, "label": f"{annees[0]}–{annees[-1]}"}]
+        + [{"value": str(a), "label": str(a)} for a in annees],
         **{"aria-label": "Période"})
     territoire = dmc.Select(
-        id="filtre-territoire", size="xs", w=210, searchable=True, allowDeselect=False,
-        value=TERRITOIRE_FRANCE, nothingFoundMessage="Aucun département",
-        comboboxProps={"withinPortal": True}, maxDropdownHeight=320,
+        id="filtre-territoire", searchable=True, allowDeselect=False, value=TERRITOIRE_FRANCE,
+        nothingFoundMessage="Aucun département", placeholder="Rechercher un département…",
+        comboboxProps={"withinPortal": False}, maxDropdownHeight=260,
+        leftSection=DashIconify(icon="tabler:search", width=16),
         data=[{"value": TERRITOIRE_FRANCE, "label": "France métropolitaine"}]
         + [{"value": d["dep"], "label": f"{d['dep']} · {d['nom']}"} for d in departements],
         **{"aria-label": "Territoire"})
-    return dmc.Group(gap=12, wrap="nowrap", children=[
-        filtre("Période", "tabler:calendar", periode),
-        filtre("Territoire", "tabler:map-2", territoire),
+    panneau = html.Div(className="panneau-filtres", children=[
+        html.Div(className="panneau-section", children=[
+            html.Div(className="panneau-titre", children=[
+                DashIconify(icon="tabler:calendar", width=14), html.Span("Période")]),
+            periode,
+            html.Div("Les courbes d'évolution montrent toujours les 7 années.",
+                     className="caption", style={"marginTop": 6}),
+        ]),
+        html.Div(className="panneau-section", children=[
+            html.Div(className="panneau-titre", children=[
+                DashIconify(icon="tabler:map-2", width=14), html.Span("Territoire")]),
+            territoire,
+            dmc.Group(gap=6, mt=8, children=[
+                html.Button("France métropolitaine", id="filtre-france", n_clicks=0,
+                            className="chip-raccourci"),
+                html.Button("Département le plus touché", id="filtre-pire", n_clicks=0,
+                            className="chip-raccourci"),
+            ]),
+        ]),
+        html.Div(className="panneau-pied", children=[
+            html.Button([DashIconify(icon="tabler:refresh", width=14),
+                         html.Span("Réinitialiser")], id="filtre-reset", n_clicks=0,
+                        className="btn btn-precedent btn-sm"),
+            html.Span("Les filtres s'appliquent à toutes les scènes et à l'adresse de la page.",
+                      className="caption"),
+        ]),
     ])
+    return dmc.Popover(
+        id="popover-filtres", position="bottom-end", width=440, shadow="md", radius="md",
+        keepMounted=True, withArrow=False, offset=8, trapFocus=False, zIndex=300,
+        children=[
+            dmc.PopoverTarget(html.Button(
+                id="filtres-resume", className="filtres-resume", n_clicks=0,
+                **{"aria-label": "Ouvrir les filtres"},
+                children=[
+                    DashIconify(icon="tabler:adjustments-horizontal", width=16,
+                                className="t-accent"),
+                    html.Span(id="resume-periode", className="resume-valeur",
+                              children=str(annee_defaut)),
+                    html.Span("·", className="resume-sep"),
+                    html.Span(id="resume-territoire", className="resume-valeur resume-terr",
+                              children="France métropolitaine"),
+                    DashIconify(icon="tabler:chevron-down", width=14, className="t-muted"),
+                ])),
+            dmc.PopoverDropdown(panneau),
+        ])
 
 
 def header(annees, departements, annee_defaut) -> dmc.AppShellHeader:
@@ -104,7 +149,29 @@ def app_shell(contenu, annees, departements, annee_defaut) -> dmc.AppShell:
 
 
 def register(app) -> None:
-    from dash import Input, Output, State
+    from dash import Input, Output, State, ctx, no_update
+
+    from app import data_access as da
+
+    @app.callback(Output("resume-periode", "children"), Output("resume-territoire", "children"),
+                  Input("filtre-periode", "value"), Input("filtre-territoire", "value"))
+    def resume_filtres(periode, dep):
+        return (da.libelle_periode(periode),
+                "France métropolitaine" if dep in (None, TERRITOIRE_FRANCE)
+                else da.libelle_territoire(dep))
+
+    @app.callback(Output("filtre-territoire", "value", allow_duplicate=True),
+                  Output("filtre-periode", "value", allow_duplicate=True),
+                  Input("filtre-france", "n_clicks"), Input("filtre-pire", "n_clicks"),
+                  Input("filtre-reset", "n_clicks"), prevent_initial_call=True)
+    def raccourcis(_france, _pire, _reset):
+        if ctx.triggered_id == "filtre-france":
+            return TERRITOIRE_FRANCE, no_update
+        if ctx.triggered_id == "filtre-pire":
+            t = da.table("ind_territoires")
+            t = t[t["periode"] == da.LIBELLE_PERIODE_CUMUL].dropna(subset=["taux_tues_million"])
+            return t.loc[t["taux_tues_million"].idxmax(), "dep"], no_update
+        return TERRITOIRE_FRANCE, str(da.DERNIERE_ANNEE)
 
     @app.callback(Output("appshell", "navbar"), Input("burger", "opened"),
                   State("appshell", "navbar"))

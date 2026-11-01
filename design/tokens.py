@@ -64,10 +64,10 @@ DARK = {
     "on-image": "#FFFFFF",
 }
 SEQ = {
-    "light": ["#F3E9DF", "#EBC3A8", "#DC8A68", "#B8493A", "#7A1712"],
-    "dark": ["#2A1F1D", "#5A2A24", "#93372E", "#C9473C", "#F05A4F"],
+    "light": ["#FCEEE4", "#F6C7A8", "#EC8F68", "#CF4C3A", "#8C1C16"],
+    "dark": ["#2A1C1B", "#5B2822", "#98372D", "#D45244", "#F77E70"],
 }
-CAT = ["#5B7083", "#6F8FAF", "#8C9A6E", "#A68A64", "#8E7CA6", "#4F8A8B"]
+CAT = ["#3E5C76", "#4F86A6", "#6A9E7F", "#C9A061", "#9A7BB0", "#3F8F8B"]
 
 # Illustration générée du héros (route de nuit sous la pluie, design/hero.py)
 HERO_PALETTE = {

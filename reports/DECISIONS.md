@@ -58,8 +58,15 @@ Format : décision — justification (une ligne).
 - ECharts non ajouté : nouvelle dépendance interdite sans accord (G14) ; style reproduit avec Plotly. À trancher par le propriétaire.
 - Remplissages semi-transparents calculés depuis les tokens (`tokens.transparence`), jamais de couleur en dur.
 
+## Phase 5
+- Filtres : bouton-résumé + panneau (années en sélecteur segmenté, recherche, raccourcis, réinitialisation) — plus lisible que deux petits menus, à la demande du propriétaire.
+- Carte : fond en ligne (tuiles Carto Positron / Dark Matter via MapLibre, sans clé) par défaut + fond simple hors ligne — demande du propriétaire ; DESIGN §8 excluait les fonds tuilés.
+- Analyses reprises des dépôts de référence (creps250 « Blood donation », Indabax) : Sankey, entonnoir, pyramide des âges, treemap ; non repris : nuages de mots (pas de texte libre), traduction anglaise (interface 100 % française), assistant IA, `pictorialBar` (ECharts), couleurs en dur, donuts > 3 parts, émojis.
+- Palettes séquentielle et catégorielle rafraîchies (plus de contraste entre classes) — demande du propriétaire.
+- Performances : caches (tables filtrées, carte de base, petits multiples) ; petits multiples construits en dictionnaire (make_subplots trop lent).
+
 ## Constats contraires aux hypothèses (G3)
-- Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,93 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.
+- Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,92 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.
 - Scène 04 : la létalité des 2RM (4,0 tués / 100 victimes) est inférieure à celle des occupants de voiture (4,9) ; c'est sur le taux de gravité que les 2RM ressortent.
 - Scène 05 : les cases les plus létales sont des nuits de semaine (mercredi 3 h sur le cumul), pas seulement de week-end ; le titre de la heatmap est désormais calculé (« Entre minuit et 6 h, une victime est X fois plus souvent tuée »).
 - Scène 05 : le titre ne parle plus de « départements ruraux » (non calculé) mais de l'écart mesuré entre départements (de 1 à 7).

@@ -35,17 +35,17 @@ ORDRES = {"vma": sorted(C.VMA_VALIDES), "lum_groupe": C.LUM_GROUPE_ORDRE,
 
 
 def _agg(periode, dep):
-    acc = da.filtrer(da.table("s02_accidents"), periode, dep).groupby("agg_lib")[
+    acc = da.filtre_table("s02_accidents", periode, dep).groupby("agg_lib")[
         "accidents"].sum()
-    usa = da.filtrer(da.table("s02_gravite"), periode, dep).groupby("agg_lib")[
+    usa = da.filtre_table("s02_gravite", periode, dep).groupby("agg_lib")[
         ["tues", "victimes"]].sum()
     return acc, usa
 
 
 def _series_annuelles(dep):
-    acc = da.filtrer(da.table("s02_accidents"), dep=dep, toutes_annees=True).pivot_table(
+    acc = da.filtre_table("s02_accidents", dep=dep, toutes_annees=True).pivot_table(
         index="annee", columns="agg_lib", values="accidents", aggfunc="sum").reindex(C.ANNEES)
-    usa = da.filtrer(da.table("s02_gravite"), dep=dep, toutes_annees=True).pivot_table(
+    usa = da.filtre_table("s02_gravite", dep=dep, toutes_annees=True).pivot_table(
         index="annee", columns="agg_lib", values=["tues", "victimes"], aggfunc="sum").reindex(
         C.ANNEES)
     part_acc_en = acc[EN] / acc.sum(axis=1) * 100
@@ -83,7 +83,8 @@ def chapeau():
 def et_alors():
     n = _national()
     fois = fmt_number(n["let_hors"] / n["let_en"], 1)
-    return (f"Hors agglomération, une victime est {fois} fois plus souvent tuée qu'en ville : "
+    return (f"Sur {da.LIBELLE_PERIODE_CUMUL}, hors agglomération, une victime est {fois} fois "
+            "plus souvent tuée qu'en ville : "
             "c'est la sévérité, pas la fréquence, qui fait la gravité des sinistres ruraux. Un "
             "zonage fondé sur le seul nombre d'accidents la sous-estime.")
 
@@ -115,6 +116,10 @@ def layout(**_):
                        "Part des tués dont l'accident a eu lieu hors agglomération.",
                        da.SOURCE_BAAC, "tués hors agglomération / total des tués", hauteur=300),
         ]),
+        chart_card("s03-sankey", "Des modes de déplacement à la gravité",
+                   "Flux des victimes : mode de déplacement, puis lieu de l'accident, puis "
+                   "gravité.", da.SOURCE_BAAC, "épaisseur = nombre de victimes ; couleur des "
+                   "liens = gravité finale", hauteur=460),
         chart_card("s03-annees", "Tués selon le lieu, par année",
                    "Répartition des tués entre agglomération et hors agglomération, par année.",
                    da.SOURCE_BAAC, "part des tués selon le lieu de l'accident ; années sous 30 "
@@ -137,8 +142,8 @@ def kpis(filtres, scheme):
     let_en = letalite(usa["tues"][EN], ve) if ve >= SEUIL else None
     ratio = let_hors / let_en if let_hors and let_en else None
 
-    g = da.filtrer(da.table("s02_gravite"), periode, dep)
-    a = da.filtrer(da.table("s02_accidents"), periode, dep)
+    g = da.filtre_table("s02_gravite", periode, dep)
+    a = da.filtre_table("s02_accidents", periode, dep)
     route_acc = a.groupby("catr_groupe", observed=True)["accidents"].sum()
     route_tues = g.groupby("catr_groupe", observed=True)["tues"].sum()
 
@@ -149,7 +154,7 @@ def kpis(filtres, scheme):
         return ("tabler:road", [f"{top} : ", html.B(fmt_pct(serie[top] / serie.sum() * 100, 0)),
                                 f" des {quoi}"])
 
-    obs = da.filtrer(da.table("s03_obs"), periode, dep).groupby("obs_groupe", observed=True)[
+    obs = da.filtre_table("s03_obs", periode, dep).groupby("obs_groupe", observed=True)[
         ["tues", "victimes"]].sum()
     obs = obs[obs["victimes"] >= SEUIL]
     leader_obs = None
@@ -157,7 +162,7 @@ def kpis(filtres, scheme):
         lo = letalite(obs["tues"], obs["victimes"])
         leader_obs = ("tabler:tree", [f"{lo.idxmax()} : ", html.B(fmt_number(lo.max(), 1)),
                                       " tués / 100 victimes"])
-    lum = da.filtrer(da.table("s03_lum"), periode, dep)
+    lum = da.filtre_table("s03_lum", periode, dep)
     lum = lum[lum["agg_lib"] == HORS].groupby("lum_groupe", observed=True)[
         ["tues", "victimes"]].sum()
     lum = lum[lum["victimes"] >= SEUIL]
@@ -205,9 +210,9 @@ def kpis(filtres, scheme):
           Output("s03-miroir-titre", "children"), *ENTREES)
 def miroir(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
-    a = da.filtrer(da.table("s02_accidents"), periode, dep).groupby(
+    a = da.filtre_table("s02_accidents", periode, dep).groupby(
         "catr_groupe", observed=True)["accidents"].sum().reindex(C.CATR_GROUPE_ORDRE, fill_value=0)
-    t = da.filtrer(da.table("s02_gravite"), periode, dep).groupby(
+    t = da.filtre_table("s02_gravite", periode, dep).groupby(
         "catr_groupe", observed=True)["tues"].sum().reindex(C.CATR_GROUPE_ORDRE, fill_value=0)
     puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
     if t.sum() < SEUIL:
@@ -229,12 +234,12 @@ def miroir(filtres, scheme):
 def letalite_par(vue, filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
     nom, col = VUES.get(vue or "Vitesse autorisée")
-    d = da.filtrer(da.table(nom), periode, dep).groupby(col, observed=True)[
+    d = da.filtre_table(nom, periode, dep).groupby(col, observed=True)[
         ["tues", "victimes"]].sum()
     d = d.reindex([c for c in ORDRES[col] if c in d.index])
     if col == "vma":
         d = d[d["victimes"] > 0]
-    tot = da.filtrer(da.table("s02_gravite"), periode, dep)[["tues", "victimes"]].sum()
+    tot = da.filtre_table("s02_gravite", periode, dep)[["tues", "victimes"]].sum()
     moy = letalite(tot["tues"], tot["victimes"]) if tot["victimes"] >= SEUIL else None
     masques = [c for c in d.index if d.loc[c, "victimes"] < SEUIL]
     vals = letalite(d["tues"], d["victimes"]).fillna(0)
@@ -264,7 +269,7 @@ def matrice_jauge_annees(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
     puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
     # Matrice route × lumière
-    m = da.filtrer(da.table("s03_matrice"), periode, dep).groupby(
+    m = da.filtre_table("s03_matrice", periode, dep).groupby(
         ["catr_groupe", "lum_groupe"], observed=True)[["tues", "victimes"]].sum()
     routes = [r for r in C.CATR_GROUPE_ORDRE if r != "Autre"]
     lums = C.LUM_GROUPE_ORDRE
@@ -289,14 +294,14 @@ def matrice_jauge_annees(filtres, scheme):
         v, r, lu = max(vis)
         titre_m = (f"{r}, {LUM_COURT[lu].lower()} : {fmt_number(v, 1)} tués pour 100 victimes")
     # Jauge : part des tués hors agglomération
-    usa = da.filtrer(da.table("s02_gravite"), periode, dep).groupby("agg_lib")["tues"].sum()
+    usa = da.filtre_table("s02_gravite", periode, dep).groupby("agg_lib")["tues"].sum()
     if usa.sum() < SEUIL:
         fig_j = F.message_figure("Moins de 30 tués sur ce périmètre", scheme)
     else:
         fig_j = F.anneau_jauge(usa.get("Hors agglomération", 0) / usa.sum() * 100,
                                "des tués, hors agglomération", scheme)
     # Barres 100 % par année
-    g = da.filtrer(da.table("s02_gravite"), dep=dep, toutes_annees=True).pivot_table(
+    g = da.filtre_table("s02_gravite", dep=dep, toutes_annees=True).pivot_table(
         index="annee", columns="agg_lib", values="tues", aggfunc="sum").reindex(C.ANNEES).fillna(0)
     tot = g.sum(axis=1)
     ok = tot >= SEUIL
@@ -317,3 +322,34 @@ def matrice_jauge_annees(filtres, scheme):
                    "l'année")
     p_toutes = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
     return fig_m, puces, titre_m, fig_j, puces, fig_a, titre_a, p_toutes
+
+
+MODES_SANKEY = {"Voiture": ["Voiture"], "2RM": ["2RM"], "Piéton": ["Piéton"],
+                "Vélo et EDP": ["Vélo", "EDP"],
+                "Autres véhicules": ["Utilitaire", "Poids lourd", "Bus, car, tram", "Autre"]}
+GRAVITES = {"tues": "Tués", "hospitalises": "Hospitalisés", "legers": "Blessés légers"}
+
+
+@callback(Output(graph_id("s03-sankey"), "figure"), Output("s03-sankey-puces", "children"),
+          Output("s03-sankey-titre", "children"), *ENTREES)
+def flux_gravite(filtres, scheme):
+    periode, dep, scheme = lire(filtres, scheme)
+    g = da.filtre_table("s02_gravite", periode, dep)
+    puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
+    if g["victimes"].sum() < SEUIL:
+        return (F.message_figure("Moins de 30 victimes sur ce périmètre", scheme), puces,
+                "Des modes de déplacement à la gravité")
+    vers_mode = {t: m for m, types in MODES_SANKEY.items() for t in types}
+    d = (g.assign(mode=g["type_usager"].astype(str).map(vers_mode))
+         .groupby(["mode", "agg_lib"], observed=True)[list(GRAVITES)].sum())
+    flux = [(mode, lieu, GRAVITES[col], float(d.loc[(mode, lieu), col]))
+            for mode, lieu in d.index for col in GRAVITES if d.loc[(mode, lieu), col] > 0]
+    tk = tokens(scheme)
+    fig = F.sankey(list(MODES_SANKEY), [EN, HORS], list(GRAVITES.values()), flux,
+                   {"Tués": tk["grav-tue"], "Hospitalisés": tk["grav-hospi"],
+                    "Blessés légers": tk["grav-leger"]}, scheme)
+    tues = d["tues"]
+    (mode, lieu), v = tues.idxmax(), tues.max()
+    titre = (f"{mode}, {lieu.lower()} : {fmt_pct(v / tues.sum() * 100, 0)} des tués à lui "
+             "seul")
+    return fig, puces, titre

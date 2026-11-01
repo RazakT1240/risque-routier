@@ -20,8 +20,8 @@ dash.register_page(__name__, path="/", name="Accueil", order=1,
 def _chiffres():
     a1 = da.DERNIERE_ANNEE
     s = par_annee("s02_gravite", da.TERRITOIRE_FRANCE, ["tues"])["tues"]
-    acc = da.filtrer(da.table("s02_accidents"), str(a1)).groupby("agg_lib")["accidents"].sum()
-    usa = da.filtrer(da.table("s02_gravite"), str(a1)).groupby("agg_lib")[
+    acc = da.filtre_table("s02_accidents", str(a1)).groupby("agg_lib")["accidents"].sum()
+    usa = da.filtre_table("s02_gravite", str(a1)).groupby("agg_lib")[
         ["tues", "victimes"]].sum()
     jours = 366 if calendar.isleap(a1) else 365
     return {

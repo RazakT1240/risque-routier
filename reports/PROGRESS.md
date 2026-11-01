@@ -4,7 +4,7 @@ Mode autonome (consigne du propriétaire) : G17 remplacé par une porte de quali
 (pytest, ruff, pipeline, app, recherche d'hexadécimaux, captures playwright, relecture par sous-agent,
 reports/phase-X.md, commit). Tous les autres garde-fous s'appliquent.
 
-## Phase en cours : 5 — Finitions et contrôle qualité
+## Statut : projet terminé (phases 0 à 5 franchies) — voir reports/SYNTHESE.md
 
 ### Fait
 - Phase 0 : `.venv` (Python 3.13.9), requirements figés, .gitignore, git init, `pipeline/inventaire.py`

@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
+
 import dash
+import dash_mantine_components as dmc
 import numpy as np
 import pandas as pd
 from dash import Input, Output, callback, ctx, html, no_update
@@ -29,6 +32,7 @@ dash.register_page(__name__, path="/ou-quand", name="Où et quand", order=5,
                    title="Où et quand · Risque routier")
 NUM = 5
 CUMUL = da.LIBELLE_PERIODE_CUMUL
+FONDS = {"Fond en ligne": "tuiles", "Fond simple": "simple"}
 INDICATEURS = {"Tués par million": ("taux_tues_million", "tués par million d'hab.", "tués"),
                "Victimes pour 100 000": ("taux_victimes_100k", "victimes pour 100 000 hab.",
                                          "victimes")}
@@ -42,7 +46,7 @@ def territoires() -> pd.DataFrame:
 
 
 def creneaux(periode, dep) -> pd.DataFrame:
-    h = da.filtrer(da.table("s05_heatmap"), periode, dep)
+    h = da.filtre_table("s05_heatmap", periode, dep)
     h = h.dropna(subset=["heure"])
     g = h.groupby(["jour_semaine", "heure"])[["accidents", "tues", "victimes"]].sum()
     return g.reindex(pd.MultiIndex.from_product([range(7), range(24)]), fill_value=0)
@@ -119,8 +123,10 @@ def layout(**_):
                    "filtrer toute l'application.", f"{da.SOURCE_BAAC} ; {da.SOURCE_INSEE}",
                    f"taux cumulés {CUMUL} (somme des populations annuelles) ; 5 classes par "
                    "quantiles", hauteur=440, mobile=True,
-                   controles=bascule("s05-indicateur", list(INDICATEURS), "Tués par million",
-                                     "Indicateur de la carte"),
+                   controles=dmc.Group(gap=12, children=[
+                       bascule("s05-indicateur", list(INDICATEURS), "Tués par million",
+                               "Indicateur de la carte"),
+                       bascule("s05-fond", list(FONDS), "Fond en ligne", "Fond de carte")]),
                    legende=html.Div(id="s05-carte-legende"),
                    aside=html.Div(id="s05-classement")),
         chart_card("s05-boites", "Dispersion des départements, année par année",
@@ -131,7 +137,7 @@ def layout(**_):
         chart_card("s05-calendrier", "Le calendrier des tués",
                    "Tués par mois et par année : chaque case est un mois.", da.SOURCE_BAAC,
                    "usagers tués, par mois de l'accident ; cases sous 30 tués grisées",
-                   hauteur=320),
+                   hauteur=320, mobile=True),
         html.Div(className="grille-2", children=[
             chart_card("s05-heatmap", "Accidents et létalité selon le jour et l'heure",
                        "Jour de la semaine × heure de l'accident ; plus la case est foncée, plus "
@@ -240,15 +246,37 @@ def classement(t: pd.DataFrame, col: str, unite: str, dep: str):
 @callback(Output(graph_id("s05-carte"), "figure"), Output(graph_id("s05-carte-mobile"), "figure"),
           Output("s05-carte-legende", "children"), Output("s05-carte-puces", "children"),
           Output("s05-classement", "children"), Output("s05-carte-titre", "children"),
-          Input(bascule_id("s05-indicateur"), "value"), *ENTREES)
-def carte(indicateur, filtres, scheme):
+          Input(bascule_id("s05-indicateur"), "value"), Input(bascule_id("s05-fond"), "value"),
+          *ENTREES)
+def carte(indicateur, fond, filtres, scheme):
     _, dep, scheme = lire(filtres, scheme)
-    col, unite, quoi = INDICATEURS.get(indicateur or "Tués par million")
+    return _carte(indicateur or "Tués par million", FONDS.get(fond, "tuiles"), dep, scheme)
+
+
+@lru_cache(maxsize=16)
+def _carte_base(indicateur, fond, scheme):
+    col, unite, _ = INDICATEURS[indicateur]
+    t = territoires()
+    construire = F.choroplethe_tuiles if fond == "tuiles" else F.choroplethe
+    fig, bornes = construire(da.geojson(), t["dep"].tolist(), t["nom_dep"].tolist(),
+                             t[col].tolist(), scheme, unite)
+    mob = F.barres_classees(t["nom_dep"].tolist(), t[col].astype(float).tolist(), scheme, unite)
+    return fig.to_plotly_json(), bornes, mob
+
+
+@lru_cache(maxsize=512)
+def _carte(indicateur, fond, dep, scheme):
+    """Ne dépend que de l'indicateur, du territoire et du thème : mise en cache."""
+    col, unite, quoi = INDICATEURS[indicateur]
     t = territoires()
     sel = dep if dep != da.TERRITOIRE_FRANCE else None
-    fig, bornes = F.choroplethe(da.geojson(), t["dep"].tolist(), t["nom_dep"].tolist(),
-                                t[col].tolist(), scheme, unite, selection=sel)
-    mob = F.barres_classees(t["nom_dep"].tolist(), t[col].astype(float).tolist(), scheme, unite)
+    base, bornes, mob = _carte_base(indicateur, fond, scheme)
+    fig = base
+    if sel:
+        # Carte de base partagée ; seul le contour ambre du département filtré est ajouté
+        contour = (F.contour_selection_tuiles if fond == "tuiles" else F.contour_selection)
+        fig = {"data": [*base["data"], contour(da.geojson(), sel, scheme).to_plotly_json()],
+               "layout": base["layout"]}
     puces = [chip_filtre(f"{CUMUL} cumulé")]
     if sel:
         puces.append(chip_filtre(f"Filtre : {da.noms_departements().get(dep, dep)}",
@@ -351,19 +379,22 @@ MOIS_C = ["Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "S
 
 
 @callback(Output(graph_id("s05-calendrier"), "figure"), Output("s05-calendrier-puces", "children"),
-          Output("s05-calendrier-titre", "children"), *ENTREES)
+          Output("s05-calendrier-titre", "children"),
+          Output(graph_id("s05-calendrier-mobile"), "figure"), *ENTREES)
 def calendrier(filtres, scheme):
     _, dep, scheme = lire(filtres, scheme)
-    m = da.filtrer(da.table("s02_mois"), dep=dep, toutes_annees=True).pivot_table(
+    m = da.filtre_table("s02_mois", dep=dep, toutes_annees=True).pivot_table(
         index="annee", columns="mois", values="tues", aggfunc="sum").reindex(
         index=C.ANNEES, columns=range(1, 13)).fillna(0)
     puces = [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)]
     masque = (m < SEUIL).to_numpy()
     if masque.all():
-        return (F.message_figure("Moins de 30 tués par mois : calendrier non affiché", scheme),
-                puces, "Le calendrier des tués")
+        vide = F.message_figure("Moins de 30 tués par mois : calendrier non affiché", scheme)
+        return vide, puces, "Le calendrier des tués", vide
     fig = F.matrice([str(a) for a in C.ANNEES], MOIS_C, m.to_numpy(), masque, scheme,
                     fmt=lambda v: fmt_number(v, 0), survol=" tués")
+    mob = F.matrice([str(a) for a in C.ANNEES], [x[0] for x in MOIS_C], m.to_numpy(), masque,
+                    scheme, survol=" tués", annoter=False)
     a, mo = m.stack().idxmax()
     titre = f"Le mois le plus meurtrier : {MOIS_C[int(mo) - 1].lower().rstrip('.')} {a}"
-    return fig, puces, titre
+    return fig, puces, titre, mob
