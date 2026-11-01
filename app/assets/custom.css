@@ -197,7 +197,7 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 @media (max-width:767px){
   .h1{font-size:28px;line-height:36px}
   .brand-text{display:none}
-  .filtre-label{display:none}
+  .header-filtres .filtre-label{display:none}
   .monogramme{display:none}
   .header-filtres .mantine-Select-root{width:84px!important}
   .header-filtres > div > div:last-child .mantine-Select-root{width:150px!important}

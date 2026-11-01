@@ -82,9 +82,9 @@ def chapeau():
 def et_alors():
     n = _national()
     fois = fmt_number(n["let_hors"] / n["let_en"], 1)
-    return (f"Hors agglomération, un accident est {fois} fois plus souvent mortel qu'en ville : "
-            "c'est la sévérité, pas la fréquence, qui pilote le coût corporel rural. Un zonage "
-            "fondé sur le seul nombre d'accidents sous-estime ce risque.")
+    return (f"Hors agglomération, une victime est {fois} fois plus souvent tuée qu'en ville : "
+            "c'est la sévérité, pas la fréquence, qui fait la gravité des sinistres ruraux. Un "
+            "zonage fondé sur le seul nombre d'accidents la sous-estime.")
 
 
 def layout(**_):
@@ -93,7 +93,7 @@ def layout(**_):
         scene_header(NUM, "Le paradoxe", debut, accent, chapeau()),
         html.Div(id="s03-kpis"),
         html.Div(className="grille-2", children=[
-            chart_card("s03-miroir", "Les départementales font les morts",
+            chart_card("s03-miroir", "Accidents et tués par type de route",
                        "Part des accidents (à gauche) et part des tués (à droite) par type de "
                        "route.", da.SOURCE_BAAC,
                        "part de chaque catégorie de route dans le total des accidents corporels "
@@ -156,14 +156,14 @@ def kpis(filtres, scheme):
     return kpi_row([
         kpi_card("s03-k1", f"Accidents en agglo. · {da.libelle_periode(periode)}",
                  "tabler:building-community", fmt_ou_na(part_acc_en, 1, pct=True),
-                 deltas=deltas_annuels(p_acc, periode, None), leader=leader_part(
+                 deltas=deltas_annuels(p_acc, periode, None, points=True), leader=leader_part(
                      route_acc, "accidents"), spark=p_acc.tolist(),
                  lire="Part des accidents corporels survenus en agglomération.",
                  assureur="La fréquence se concentre en ville : c'est là que les sinistres "
                           "sont nombreux.", source=src, indisponible=part_acc_en is None),
         kpi_card("s03-k2", f"Tués hors agglo. · {da.libelle_periode(periode)}", "tabler:trees",
                  fmt_ou_na(part_tues_hors, 1, pct=True),
-                 deltas=deltas_annuels(p_tues, periode, None),
+                 deltas=deltas_annuels(p_tues, periode, None, points=True),
                  leader=leader_part(route_tues, "tués"), spark=p_tues.tolist(),
                  lire="Part des tués dont l'accident a eu lieu hors agglomération.",
                  assureur="La gravité se concentre hors des villes : c'est là que se joue le "
@@ -171,7 +171,7 @@ def kpis(filtres, scheme):
                  indisponible=part_tues_hors is None),
         kpi_card("s03-k3", f"Létalité hors agglo. · {da.libelle_periode(periode)}",
                  "tabler:alert-triangle", fmt_ou_na(let_hors, 1),
-                 deltas=deltas_annuels(s_let, periode) if let_hors else [],
+                 deltas=deltas_annuels(s_let, periode, points=True) if let_hors else [],
                  leader=leader_lum, spark=s_let.tolist(),
                  lire="Tués pour 100 victimes, pour les accidents hors agglomération.",
                  assureur="Plus elle est haute, plus un sinistre corporel rural est coûteux.",
@@ -180,14 +180,14 @@ def kpis(filtres, scheme):
                  fmt_ratio(ratio, 1) if ratio else "—",
                  deltas=deltas_annuels(s_ratio, periode, None) if ratio else [],
                  leader=leader_obs, spark=s_ratio.tolist(),
-                 lire="Combien de fois un accident hors agglomération est plus souvent mortel "
-                      "qu'en ville.", assureur="Mesure l'écart de sévérité à intégrer dans un "
-                 "zonage tarifaire.", source=src, indisponible=ratio is None),
+                 lire="Combien de fois une victime hors agglomération est plus souvent tuée "
+                      "qu'une victime en ville.", assureur="Mesure l'écart de sévérité entre "
+                 "territoires.", source=src, indisponible=ratio is None),
     ])
 
 
 @callback(Output(graph_id("s03-miroir"), "figure"), Output("s03-miroir-puces", "children"),
-          *ENTREES)
+          Output("s03-miroir-titre", "children"), *ENTREES)
 def miroir(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
     a = da.filtrer(da.table("s02_accidents"), periode, dep).groupby(
@@ -196,12 +196,17 @@ def miroir(filtres, scheme):
         "catr_groupe", observed=True)["tues"].sum().reindex(C.CATR_GROUPE_ORDRE, fill_value=0)
     puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
     if t.sum() < SEUIL:
-        return F.message_figure("Moins de 30 tués sur ce périmètre : répartition non affichée",
-                                scheme), puces
+        return (F.message_figure("Moins de 30 tués sur ce périmètre : répartition non affichée",
+                                 scheme), puces, "Accidents et tués par type de route")
     pa, pt = a / a.sum() * 100, t / t.sum() * 100
     alerte = (pt - pa).idxmax()
+    noms = {"Départementale": "Les départementales", "Nationale": "Les nationales",
+            "Autoroute": "Les autoroutes", "Communale": "Les voies communales",
+            "Métropole urbaine": "Les routes de métropole", "Autre": "Les autres voies"}
+    titre_g = (f"{noms[alerte]} font plus de morts que d'accidents"
+               if pt[alerte] - pa[alerte] >= 5 else "Accidents et tués par type de route")
     return F.barres_miroir(list(pa.index), pa.round(1).tolist(), pt.round(1).tolist(), alerte,
-                           "Accidents", "Tués", scheme), puces
+                           "Accidents", "Tués", scheme), puces, titre_g
 
 
 @callback(Output(graph_id("s03-letalite"), "figure"), Output("s03-letalite-puces", "children"),

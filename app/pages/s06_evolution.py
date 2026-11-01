@@ -46,15 +46,29 @@ def poids_pareto():
     return None
 
 
+NOMS = {"EDP": "en trottinette ou EDP", "Vélo": "à vélo", "Piéton": "piétonnes",
+        "2RM": "en deux-roues motorisé", "Voiture": "en voiture", "Utilitaire": "en utilitaire",
+        "Poids lourd": "en poids lourd", "Bus, car, tram": "en transport collectif",
+        "Autre": "des autres véhicules"}
+
+
+def plus_forte_hausse(v: pd.DataFrame, a1: int):
+    evols = {c: evolution(v[c], a1) for c in v.columns if c != "Autre"}
+    evols = {c: e for c, e in evols.items() if e is not None}
+    return max(evols.items(), key=lambda x: x[1]) if evols else (None, None)
+
+
 def titre():
     v = victimes_par_type(da.TERRITOIRE_FRANCE)
     a1 = da.DERNIERE_ANNEE
-    edp, velo, voit = (evolution(v[c], a1) for c in ("EDP", "Vélo", "Voiture"))
-    if edp and velo and voit is not None and edp > 0 and velo > 0 and voit < 0:
-        return ("Trottinettes et vélos progressent,", "la voiture recule.")
-    top = max(((c, evolution(v[c], a1)) for c in v.columns if evolution(v[c], a1) is not None),
-              key=lambda x: x[1])
-    return (f"Les victimes {top[0].lower()} progressent", "plus vite que les autres.")
+    top, ev = plus_forte_hausse(v, a1)
+    if top is None:
+        return ("Les victimes par mode de déplacement", f"depuis {A0}.")
+    facteur = v[top][a1] / v[top][A0]
+    if facteur >= 2:
+        return (f"Les victimes {NOMS[top]}", f"ont été multipliées par {fmt_number(facteur, 0)} "
+                f"depuis {A0}.")
+    return (f"Les victimes {NOMS[top]}", f"progressent le plus : {fmt_pct(ev, 0, signe=True)}.")
 
 
 def chapeau():
@@ -108,7 +122,7 @@ def layout(**_):
     return scene_layout(
         scene_header(NUM, "Ce qui change", debut, accent, chapeau()),
         html.Div(id="s06-kpis"),
-        chart_card("s06-multiples", "Chaque mode de déplacement suit sa propre trajectoire",
+        chart_card("s06-multiples", "Victimes par mode de déplacement, base 100 en 2019",
                    f"Victimes par type d'usager, indice base 100 en {A0}, même échelle.",
                    da.SOURCE_BAAC, f"victimes de l'année / victimes {A0} × 100 ; types sous 30 "
                    f"victimes en {A0} non affichés", hauteur=520),
@@ -132,7 +146,9 @@ def kpis(filtres, scheme):
     src = f"Source : {da.SOURCE_BAAC} · {da.libelle_territoire(dep)}."
 
     def carte_evol(kid, label, icon, serie, lire_txt, assureur, plus_est_mauvais=True):
-        ev = evolution(serie, a1)
+        ev = evolution(serie, a1) if a1 > A0 else None
+        if callable(assureur):
+            assureur = assureur(ev)
         if ev is None:
             return kpi_card(kid, label, icon, "—", lire=lire_txt, assureur=assureur,
                             source=src, indisponible=True)
@@ -155,37 +171,46 @@ def kpis(filtres, scheme):
     return kpi_row([
         carte_evol("s06-k1", f"Tués {A0} → {a1}", "tabler:cross", s,
                    "Évolution du nombre de tués entre 2019 et l'année choisie.",
-                   "La sinistralité mortelle ne recule plus : pas de baisse tendancielle à "
-                   "intégrer dans les tarifs."),
+                   lambda ev: ("Pas de baisse tendancielle de la mortalité à intégrer dans "
+                               "les hypothèses." if ev is not None and abs(ev) < 3 else
+                               "Une tendance à confronter à l'évolution de la charge des "
+                               "sinistres corporels.")),
         carte_evol("s06-k2", f"Victimes EDP {A0} → {a1}", "tabler:scooter", v.get("EDP"),
                    "Évolution des victimes en trottinette ou autre engin de déplacement "
-                   "personnel.", "Un risque émergent, mal couvert par les contrats auto "
-                   "classiques."),
+                   "personnel.", "Un mode de déplacement à suivre pour les garanties de "
+                   "responsabilité civile."),
         carte_evol("s06-k3", f"Victimes vélo {A0} → {a1}", "tabler:bike", v.get("Vélo"),
                    "Évolution des victimes à vélo (y compris à assistance électrique).",
-                   "Plus de cyclistes exposés : enjeu de responsabilité civile pour les "
-                   "automobilistes assurés."),
+                   "Un cycliste blessé par un véhicule est indemnisé par l'assureur de ce "
+                   "véhicule : un enjeu de responsabilité civile."),
         kpi_card("s06-k4", f"Part des 2RM (tués) · {a1}", "tabler:motorbike",
                  fmt_ou_na(None if pd.isna(part2rm) else part2rm, 1, pct=True),
-                 deltas=deltas_annuels(s2rm, str(a1), None) if not pd.isna(part2rm) else [],
+                 deltas=deltas_annuels(s2rm, str(a1), None, points=True)
+                 if not pd.isna(part2rm) else [],
                  spark=s2rm.tolist(),
                  lire="Part des usagers de deux-roues motorisés parmi les tués.",
-                 assureur="Un poids stable et élevé : le 2RM reste le segment le plus exposé.",
+                 assureur="À rapprocher de la part des 2RM dans le trafic : "
+                          f"{(da.references() or {}).get('part_trafic_2rm_pct') or 'À renseigner'}"
+                          " (voir Méthode).",
                  source=src, indisponible=pd.isna(part2rm)),
     ])
 
 
 @callback(Output(graph_id("s06-multiples"), "figure"), Output("s06-multiples-puces", "children"),
           Output(graph_id("s06-pareto"), "figure"), Output("s06-pareto-puces", "children"),
-          *ENTREES)
+          Output("s06-multiples-titre", "children"), *ENTREES)
 def graphes(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
     v = victimes_par_type(dep)
     series = {c: [round(x, 1) for x in base_100(v[c], v[c][A0])]
               for c in C.TYPE_USAGER_ORDRE if c in v.columns and v[c][A0] >= SEUIL}
+    titre_m = "Victimes par mode de déplacement, base 100 en 2019"
     if series:
         alerte = max(series, key=lambda c: series[c][-1])
         fig_m = F.petits_multiples(C.ANNEES, series, alerte, scheme)
+        if series[alerte][-1] > 110:
+            titre_m = (f"Les victimes {NOMS[alerte]} progressent le plus "
+                       f"(indice {fmt_number(series[alerte][-1])})")
     else:
         fig_m = F.message_figure("Effectifs trop faibles par type d'usager", scheme)
     g, total = _pareto(periode, dep)
@@ -195,4 +220,4 @@ def graphes(filtres, scheme):
         fig_p = F.pareto(g["lib"].tolist(), g["part"].round(2).tolist(),
                          g["cumul"].round(2).tolist(), SEUIL_PARETO, scheme)
     return (fig_m, [chip_filtre(x) for x in da.puces_filtres(None, dep, toutes_annees=True)],
-            fig_p, [chip_filtre(x) for x in da.puces_filtres(periode, dep)])
+            fig_p, [chip_filtre(x) for x in da.puces_filtres(periode, dep)], titre_m)

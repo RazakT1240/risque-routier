@@ -3,7 +3,8 @@
    tout vient du modèle. */
 window.dash_clientside = Object.assign({}, window.dash_clientside, {
   simulateur: {
-    calcul: function (type, ageIdx, sexe, nuit, pluie, hors, route, comparer, m) {
+    calcul: function (type, ageIdx, sexe, nuit, pluie, hors, route, clics, m) {
+      var comparer = (clics || 0) % 2 === 1;
       var nu = window.dash_clientside.no_update;
       if (!m || !m.coefs) { return [nu, nu, nu, nu, nu, nu, nu, nu, nu, nu]; }
       var classe = m.niveaux.classe_age[ageIdx] || m.references.classe_age;
@@ -19,8 +20,9 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         if (c) { eta += c.coef; }
       });
       var proba = 1 / (1 + Math.exp(-eta));
-      var ratio = Math.exp(eta - m.eta_profil_moyen);
-      var pMoy = m.proba_profil_moyen;
+      // Référence : part observée de blessés graves parmi les usagers impliqués
+      var pMoy = m.taux_observe;
+      var ratio = proba / pMoy;
 
       var f1 = new Intl.NumberFormat("fr-FR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
       var nbsp = " ";
@@ -49,8 +51,8 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         "Métropole urbaine": "sur route de métropole urbaine", "Autre": "sur une autre voie"
       };
       morceaux.push(routes[route] || route);
-      var phrase = morceaux.join(", ") + " : risque de blessure grave " + ratioTxt +
-        " par rapport au profil moyen.";
+      var phrase = morceaux.join(", ") + " : probabilité d'être tué ou hospitalisé de " +
+        probaTxt + ", soit " + ratioTxt + " la moyenne des usagers impliqués.";
 
       // Jauge logarithmique de ÷8 à ×32 (mêmes bornes que la page) : position en %
       var lo = Math.log(m.jauge ? m.jauge[0] : 1 / 8), hi = Math.log(m.jauge ? m.jauge[1] : 32);

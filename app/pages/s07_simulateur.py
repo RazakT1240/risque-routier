@@ -20,7 +20,7 @@ from app.scenes import voisines
 dash.register_page(__name__, path="/simulateur", name="Simulateur", order=7,
                    title="Simulateur · Risque routier")
 NUM = 7
-GRADUATIONS = [1 / 8, 1 / 4, 1 / 2, 1, 2, 4, 8, 16, 32]
+GRADUATIONS = [1 / 8, 1 / 4, 1 / 2, 1, 2, 4, 8]
 
 
 def _modele():
@@ -52,10 +52,10 @@ def chapeau():
 def et_alors():
     hors = _or("agg_lib", "Hors agglomération")
     nuit = _or("nuit", "Oui")
-    return (f"À profil égal, être hors agglomération multiplie les chances de blessure grave par "
-            f"{fmt_number(hors, 1)}, rouler de nuit par {fmt_number(nuit, 1)} : des variables "
-            "d'usage, observables par la télématique, qui complètent les critères tarifaires "
-            "classiques.")
+    return (f"À profil égal, la cote d'une blessure grave est multipliée par {fmt_number(hors, 1)} "
+            f"hors agglomération et par {fmt_number(nuit, 1)} la nuit (rapports de cotes du "
+            "modèle) : des variables d'usage, observables par la télématique, qui complètent les "
+            "critères tarifaires classiques.")
 
 
 def _jauge():
@@ -73,8 +73,8 @@ def _jauge():
         ]),
         html.Div(className="jauge-ticks", children=ticks),
         html.Div(className="caption", style={"marginTop": 22},
-                 children="Rapport de cotes par rapport au profil moyen (×1), échelle "
-                          "logarithmique."),
+                 children="Risque relatif : probabilité du profil / part moyenne de blessés "
+                          "graves parmi les usagers impliqués (×1), échelle logarithmique."),
     ])
 
 
@@ -119,17 +119,20 @@ def layout(**_):
         gap=20, children=[
             html.H2("Le risque estimé", className="h2"),
             dmc.Group(gap=40, align="flex-end", children=[
-                html.Div([html.Div("Rapport de cotes", className="label"),
+                html.Div([html.Div("Risque relatif", className="label"),
                           html.Div(id="sim-ratio", className="display num t-primary")]),
                 html.Div([html.Div("Probabilité de blessure grave si impliqué", className="label"),
                           html.Div(id="sim-proba", className="kpi-value")]),
             ]),
             _jauge(),
             html.P(id="sim-phrase", className="body t-primary recit", style={"margin": 0}),
-            dmc.Switch(id="sim-comparer", label="Comparer au profil moyen", checked=False),
+            html.Div(dmc.Button("Comparer à la moyenne", id="sim-comparer", n_clicks=0,
+                                variant="light",
+                                leftSection=DashIconify(icon="tabler:arrows-left-right",
+                                                        width=16))),
             html.Div(id="sim-comparaison", style={"display": "none"}, children=[
                 html.Div(className="comp-ligne", children=[
-                    html.Span("Profil moyen", className="comp-lib"),
+                    html.Span("Moyenne", className="comp-lib"),
                     html.Div(className="comp-piste", children=html.Div(
                         id="sim-comp-moy", className="comp-barre comp-neutre")),
                     html.Span(id="sim-comp-moy-txt", className="comp-val")]),
@@ -143,7 +146,8 @@ def layout(**_):
                 "Estimation statistique sur 2019–2025, pas une prédiction individuelle. ",
                 f"Modèle : régression logistique sur {fmt_number(m['n_obs'])} usagers impliqués "
                 "(France métropolitaine) ; « pluie » = pluie faible (0,2 à 5 mm) du jour dans le "
-                "département ; référence : profil moyen de l'échantillon."]),
+                "département ; référence : part observée de blessés graves parmi les usagers "
+                "impliqués."]),
         ]))
     return scene_layout(
         dcc.Store(id="sim-modele", data={**m, "jauge": [GRADUATIONS[0], GRADUATIONS[-1]]}),
@@ -163,7 +167,7 @@ clientside_callback(
     Output("sim-comp-moy-txt", "children"), Output("sim-comp-profil-txt", "children"),
     Input("sim-type", "value"), Input("sim-age", "value"), Input("sim-sexe", "value"),
     Input("sim-nuit", "checked"), Input("sim-pluie", "checked"), Input("sim-hors", "checked"),
-    Input("sim-route", "value"), Input("sim-comparer", "checked"), State("sim-modele", "data"))
+    Input("sim-route", "value"), Input("sim-comparer", "n_clicks"), State("sim-modele", "data"))
 
 clientside_callback(
     ClientsideFunction(namespace="simulateur", function_name="age"),

@@ -40,10 +40,10 @@ def taux_age(periode, dep) -> pd.DataFrame:
 def par_type(periode, dep) -> pd.DataFrame:
     g = da.filtrer(da.table("s02_gravite"), periode, dep).groupby(
         "type_usager", observed=True)[["victimes", "tues", "hospitalises", "graves"]].sum()
-    g = g[(g["victimes"] >= SEUIL) & (g.index != "Autre")]
+    # Parts calculées sur l'ensemble des victimes, avant d'écarter « Autre » et les petits types
     g["part_victimes"] = g["victimes"] / g["victimes"].sum() * 100
     g["gravite"] = taux_gravite(g["tues"], g["hospitalises"], g["victimes"])
-    return g
+    return g[(g["victimes"] >= SEUIL) & (g.index != "Autre")]
 
 
 def type_en_tete(g: pd.DataFrame) -> str | None:
@@ -66,13 +66,15 @@ def titre():
     if pic["sexe_lib"] == "Homme" and str(pic["classe_age"]) in JEUNES and tete == "2RM":
         return ("Les jeunes hommes et les deux-roues", "concentrent les blessures graves.")
     sexe = "hommes" if pic["sexe_lib"] == "Homme" else "femmes"
-    return (f"Les {sexe} de {pic['classe_age']} ans", "concentrent les blessures graves.")
+    return (f"Les {sexe} de {str(pic['classe_age']).replace('-', '–')} ans",
+            "concentrent les blessures graves.")
 
 
 def chapeau():
     pic, g, ratio = _national()
     return (f"Rapportées à la population, les blessures graves culminent chez les "
-            f"{'hommes' if pic['sexe_lib'] == 'Homme' else 'femmes'} de {pic['classe_age']} ans "
+            f"{'hommes' if pic['sexe_lib'] == 'Homme' else 'femmes'} de "
+            f"{str(pic['classe_age']).replace('-', '–')} ans "
             f"({fmt_number(pic['taux'], 0)} pour 100 000 habitants et par an"
             + (f", {fmt_number(ratio, 1)} fois plus que les femmes du même âge)." if ratio
                else ")."))
@@ -84,11 +86,11 @@ def et_alors():
     voiture = g.loc["Voiture", "gravite"] if "Voiture" in g.index else None
     phrase = ""
     if tete and voiture is not None:
-        phrase = (f" Un usager {'de 2RM' if tete == '2RM' else tete.lower()} impliqué est "
-                  f"gravement blessé dans {fmt_pct(g.loc[tete, 'gravite'], 0)} des cas, contre "
+        phrase = (f" Une victime {'en 2RM' if tete == '2RM' else tete.lower()} est tuée ou "
+                  f"hospitalisée dans {fmt_pct(g.loc[tete, 'gravite'], 0)} des cas, contre "
                   f"{fmt_pct(voiture, 0)} en voiture.")
-    return ("L'âge, le sexe et le type de véhicule captent l'essentiel de la gravité : ce sont les "
-            "variables tarifaires qui comptent." + phrase)
+    return ("L'âge et le type de véhicule marquent fortement la gravité des blessures : deux "
+            "variables que la tarification sait déjà observer." + phrase)
 
 
 def layout(**_):
@@ -97,12 +99,13 @@ def layout(**_):
         scene_header(NUM, "Qui", debut, accent, chapeau()),
         html.Div(id="s04-kpis"),
         html.Div(className="grille-2", children=[
-            chart_card("s04-age", "Le risque grave culmine chez les jeunes hommes",
+            chart_card("s04-age", "Victimes graves par âge et par sexe",
                        "Victimes graves (tués et hospitalisés) pour 100 000 habitants, par âge.",
                        f"{da.SOURCE_BAAC} ; {da.SOURCE_INSEE}",
                        "victimes graves / population de la classe d'âge × 100 000, par an ; "
                        "classes sous 30 victimes masquées", hauteur=360),
-            chart_card("s04-matrice", "Fréquence et gravité ne vont pas ensemble",
+            chart_card("s04-matrice", "Quels usagers sont à la fois nombreux et gravement "
+                       "touchés ?",
                        "Chaque bulle : un type d'usager. Taille : nombre de tués.",
                        da.SOURCE_BAAC,
                        "part des victimes ; taux de gravité = (tués + hospitalisés) / victimes ; "
@@ -191,11 +194,12 @@ def kpis(filtres, scheme):
         leader3 = ("tabler:helmet-off", ["Sans équipement : létalité ", html.B(fmt_number(lc, 1))])
     k3 = kpi_card("s04-k3", "Part des 2RM (tués)", "tabler:motorbike",
                   fmt_ou_na(part2rm, 1, pct=True),
-                  deltas=deltas_annuels(s_2rm, periode, None) if part2rm else [],
+                  deltas=deltas_annuels(s_2rm, periode, None, points=True) if part2rm else [],
                   leader=leader3, spark=s_2rm.tolist(),
                   lire="Part des usagers de deux-roues motorisés (cyclos, scooters, motos) parmi "
-                       "les tués.", assureur="Une part sans commune mesure avec la part des 2RM "
-                  "dans le trafic : le risque y est très concentré.", source=src,
+                       "les tués.", assureur="À rapprocher de la part des 2RM dans le trafic : "
+                  f"{(da.references() or {}).get('part_trafic_2rm_pct') or 'À renseigner'} "
+                  "(voir Méthode).", source=src,
                   indisponible=part2rm is None)
 
     # 4. Part des 65 ans et plus parmi les piétons tués
@@ -205,25 +209,34 @@ def kpis(filtres, scheme):
     part65 = n65 / n * 100 if n >= SEUIL else None
     k4 = kpi_card("s04-k4", "Piétons tués : 65 ans +", "tabler:walk",
                   fmt_ou_na(part65, 1, pct=True),
-                  deltas=deltas_annuels(s_65, periode, None) if part65 else [],
+                  deltas=deltas_annuels(s_65, periode, None, points=True) if part65 else [],
                   leader=("tabler:walk", [html.B(fmt_number(n65)), " piétons tués de 65 ans "
                                                                     "et plus"]) if part65 else None,
                   spark=s_65.tolist(),
                   lire="Part des 65 ans et plus parmi les piétons tués.",
-                  assureur="Le piéton âgé est la victime type des accidents en ville : enjeu de "
-                           "responsabilité civile.", source=src, indisponible=part65 is None)
+                  assureur="Un piéton blessé est indemnisé par l'assureur du véhicule : un "
+                           "enjeu de responsabilité civile.", source=src,
+                  indisponible=part65 is None)
     return kpi_row([k1, k2, k3, k4])
 
 
 @callback(Output(graph_id("s04-age"), "figure"), Output("s04-age-puces", "children"),
           Output(graph_id("s04-matrice"), "figure"), Output("s04-matrice-puces", "children"),
-          *ENTREES)
+          Output("s04-age-titre", "children"), *ENTREES)
 def graphes(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
     puces = [chip_filtre(x) for x in da.puces_filtres(periode, dep)]
     m = taux_age(periode, dep)
     h = m[m["sexe_lib"] == "Homme"].set_index("classe_age")["taux"]
     f = m[m["sexe_lib"] == "Femme"].set_index("classe_age")["taux"]
+    valides = m.dropna(subset=["taux"])
+    if len(valides):
+        pic = valides.loc[valides["taux"].idxmax()]
+        titre_age = (f"Le risque grave culmine chez les "
+                     f"{'hommes' if pic['sexe_lib'] == 'Homme' else 'femmes'} de "
+                     f"{str(pic['classe_age']).replace('-', '–')} ans")
+    else:
+        titre_age = "Victimes graves par âge et par sexe"
     if h.notna().sum() + f.notna().sum() == 0:
         fig_age = F.message_figure("Moins de 30 victimes graves par classe : taux non affichés",
                                    scheme)
@@ -241,4 +254,4 @@ def graphes(filtres, scheme):
                                  g["gravite"].round(2).tolist(), g["tues"].tolist(),
                                  type_en_tete(g), scheme, "Part des victimes",
                                  "Taux de gravité")
-    return fig_age, puces, fig_m, puces
+    return fig_age, puces, fig_m, puces, titre_age

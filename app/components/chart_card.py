@@ -67,7 +67,7 @@ def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *
                         children=[
         html.Div(className="chart-head", children=[
             html.Div(children=[
-                html.H2(titre, className="h2"),
+                html.H2(titre, className="h2", id=f"{nom}-titre"),
                 html.Div(sous_titre, className="caption", style={"marginTop": 4}),
             ]),
             menu_actions(nom) if avec_graphe else None,

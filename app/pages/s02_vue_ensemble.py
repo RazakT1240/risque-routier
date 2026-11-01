@@ -64,8 +64,8 @@ def et_alors():
                                                                        s["victimes"][a1])
     return (f"Moins de victimes mais autant de morts : la létalité passe de "
             f"{fmt_number(let0, 1)} à {fmt_number(let1, 1)} tués pour 100 victimes. Pour un "
-            "assureur, le coût moyen d'un sinistre corporel grave dérive : la fréquence ne suffit "
-            "plus à piloter la charge.")
+            "assureur, la gravité moyenne d'un sinistre corporel augmente : la fréquence seule ne "
+            "suffit plus à suivre la sinistralité.")
 
 
 def layout(**_):
@@ -98,13 +98,13 @@ def kpis(filtres, scheme):
     pop_an = da.population_par_annee(dep)
     tues, hosp, vict = (float(s.loc[ans, c].sum()) for c in ("tues", "hospitalises", "victimes"))
 
-    def leader_type(col):
+    def leader_type(col, libelle):
         par = g.groupby("type_usager", observed=True)[col].sum()
         if par.sum() < SEUIL:
             return None
         top = par.idxmax()
         return ("tabler:user", [f"{top} en tête : ", html.B(fmt_pct(par[top] / par.sum() * 100,
-                                                                     0)), f" des {col}"])
+                                                                     0)), f" des {libelle}"])
 
     # Létalité par catégorie de route (effectif suffisant)
     lr = g.groupby("catr_groupe", observed=True)[["tues", "victimes"]].sum()
@@ -139,20 +139,22 @@ def kpis(filtres, scheme):
     return kpi_row([
         kpi_card("s02-k1", libelle_kpi("Tués", periode), "tabler:cross", fmt_number(tues),
                  compte=int(tues), deltas=deltas_annuels(s["tues"], periode),
-                 leader=leader_type("tues"), spark=s["tues"].tolist(),
+                 leader=leader_type("tues", "tués"), spark=s["tues"].tolist(),
                  lire="Personnes décédées dans les 30 jours qui suivent l'accident.",
-                 assureur="Chaque décès est le sinistre corporel le plus coûteux du portefeuille.",
+                 assureur="Le décès est l'issue la plus grave d'un sinistre corporel.",
                  source=source),
         kpi_card("s02-k2", libelle_kpi("Hospitalisés", periode), "tabler:building-hospital",
                  fmt_number(hosp), compte=int(hosp),
                  deltas=deltas_annuels(s["hospitalises"], periode),
-                 leader=leader_type("hospitalises"), spark=s["hospitalises"].tolist(),
+                 leader=leader_type("hospitalises", "hospitalisés"),
+                 spark=s["hospitalises"].tolist(),
                  lire="Victimes hospitalisées plus de 24 heures (indicateur non labellisé "
                       "depuis 2019).",
-                 assureur="Les séquelles lourdes pèsent sur les rentes et les provisions longues.",
+                 assureur="Les blessures graves sont celles qui engagent les indemnisations les "
+                          "plus longues.",
                  source=source),
         kpi_card("s02-k3", libelle_kpi("Létalité", periode), "tabler:percentage",
-                 fmt_ou_na(let, 1), deltas=deltas_annuels(serie_let, periode)
+                 fmt_ou_na(let, 1), deltas=deltas_annuels(serie_let, periode, points=True)
                  if let is not None else [], leader=leader_route,
                  spark=[v for v in serie_let.tolist()],
                  lire="Nombre de tués pour 100 victimes : la gravité moyenne d'un accident.",
@@ -162,15 +164,30 @@ def kpis(filtres, scheme):
                  fmt_ou_na(taux, 1), deltas=deltas_annuels(serie_taux, periode)
                  if taux is not None else [], leader=leader_taux,
                  spark=serie_taux.tolist(),
-                 lire="Victimes rapportées à la population : la fréquence par habitant.",
+                 lire="Victimes rapportées à la population du département de l'accident : les "
+                      "départements touristiques ou de transit sont gonflés par les non-résidents.",
                  assureur="La fréquence corporelle par habitant, comparable entre territoires.",
                  source=f"Source : {da.SOURCE_BAAC} ; {da.SOURCE_INSEE}.",
                  indisponible=taux is None),
     ])
 
 
+def titre_base100(series: dict) -> str:
+    """Titre de la courbe calculé sur les indices de la dernière année (G3)."""
+    if "Tués" not in series or len(series) < 2:
+        return "Évolution des victimes depuis 2019"
+    tues = series["Tués"]
+    autres = [v[-1] for k, v in series.items() if k != "Tués"]
+    ecart = tues[-1] - max(autres)
+    if ecart > 3:
+        return "Depuis 2019, les tués décrochent des blessés"
+    if tues[-1] < min(autres) - 3:
+        return "Les tués reculent plus vite que les blessés"
+    return "Tués et blessés évoluent au même rythme"
+
+
 @callback(Output(graph_id("s02-base100"), "figure"), Output(graph_id("s02-barres"), "figure"),
-          *ENTREES)
+          Output("s02-base100-titre", "children"), *ENTREES)
 def graphes(filtres, scheme):
     _, dep, scheme = lire(filtres, scheme)
     s = par_annee("s02_gravite", dep, COLS)
@@ -180,7 +197,7 @@ def graphes(filtres, scheme):
             series[nom] = [round(v, 1) for v in base_100(s[col], s[col][da.PREMIERE_ANNEE])]
     fig1 = F.lignes_base100(C.ANNEES, series, "Tués", scheme)
     fig2 = F.barres_annuelles(C.ANNEES, s["tues"].astype(int).tolist(), scheme)
-    return fig1, fig2
+    return fig1, fig2, titre_base100(series)
 
 
 @callback(Output("s02-base100-puces", "children"), Output("s02-barres-puces", "children"),

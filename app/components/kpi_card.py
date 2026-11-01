@@ -43,6 +43,8 @@ def kpi_card(kpi_id: str, label: str, icon: str, valeur: str, *, deltas: list[di
     `texte=True` : valeur textuelle (nom, créneau) en corps réduit, sur 2 lignes au plus."""
     attrs = {"data-count": str(compte)} if compte is not None else {}
     na = indisponible or valeur == NA
+    if na:
+        deltas, spark = [], None
     valeur_node = (html.Div([html.Span(NA, className="kpi-value kpi-na"),
                              html.Span(" Donnée indisponible", className="kpi-na-texte")])
                    if na else html.Div(valeur, className="kpi-value kpi-value-texte" if texte

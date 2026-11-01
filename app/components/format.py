@@ -54,6 +54,21 @@ def variation_pct(valeur, reference):
     return (valeur / reference - 1) * 100
 
 
+def delta_points(valeur, reference, libelle: str, plus_est_mauvais: bool | None = None,
+                 decimals: int = 1) -> dict:
+    """Variation d'une part ou d'un taux pour 100, en points (« ▲ +0,8 pt vs 2024 »)."""
+    if _manquant(valeur) or _manquant(reference):
+        return {"texte": f"{NA} vs {libelle}", "sens": "neutre"}
+    v = round(valeur - reference, decimals)
+    if v == 0:
+        return {"texte": f"= vs {libelle}", "sens": "neutre"}
+    fleche = "▲" if v > 0 else "▼"
+    texte = f"{fleche} {fmt_number(v, decimals, signe=True)}{INSECABLE}pt vs {libelle}"
+    if plus_est_mauvais is None:
+        return {"texte": texte, "sens": "neutre"}
+    return {"texte": texte, "sens": "defavorable" if (v > 0) == plus_est_mauvais else "favorable"}
+
+
 def delta(valeur, reference, libelle: str, plus_est_mauvais: bool | None = True,
           decimals: int = 1) -> dict:
     """Variation affichable : flèche ▲▼ + couleur selon le sens POUR L'ASSUREUR (DESIGN §2.2)."""

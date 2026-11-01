@@ -61,11 +61,11 @@ def lignes_base100(annees, series: dict[str, list], alerte: str, scheme: str) ->
             hovertemplate=f"{nom} : %{{y:.0f}}<extra></extra>"))
         fig.add_annotation(**_annot(t, annees[-1], vals[-1],
                                     f"<b>{nom}</b> {fmt_number(vals[-1])}", c,
-                                    xanchor="left", xshift=10))
+                                    xanchor="left", xshift=8))
     fig.add_hline(y=100, line=dict(color=t["border"], width=1, dash="dot"))
     bande_2020(fig, t)
     return _base(fig, scheme, hovermode="x unified", showlegend=False,
-                 margin=dict(l=8, r=150, t=28, b=8),
+                 margin=dict(l=8, r=112, t=28, b=8),
                  xaxis=dict(dtick=1, range=[annees[0] - 0.3, annees[-1] + 0.3]),
                  yaxis=dict(title=None))
 
@@ -107,6 +107,11 @@ def barres_miroir(categories, part_gauche, part_droite, alerte: str, lib_g: str,
     borne = max(max(part_gauche), max(part_droite)) * 1.4
     ticks = [v for v in (-100, -50, 0, 50, 100) if abs(v) <= borne]
     fig.add_vline(x=0, line=dict(color=t["border"], width=1))
+    i = list(categories).index(alerte)
+    ecart = part_droite[i] - part_gauche[i]
+    fig.add_annotation(**_annot(t, part_droite[i], alerte,
+                                f"<b>écart {fmt_number(ecart, 0, signe=True)} pts</b>",
+                                t["grav-tue"], xanchor="left", xshift=34, yshift=0))
     fig.add_annotation(**_annot(t, -borne, 1.02, f"← {lib_g}", t["text-secondary"],
                                 xanchor="left", yref="paper", yanchor="bottom"))
     fig.add_annotation(**_annot(t, borne, 1.02, f"{lib_d} →", t["text-secondary"],
@@ -163,13 +168,16 @@ def courbes_age(classes, hommes, femmes, scheme: str, alerte_hommes=True) -> go.
         fig.add_trace(go.Scatter(x=classes, y=vals, name=nom, mode="lines", line=dict(
             color=c, width=w, shape="spline", smoothing=0.6), connectgaps=False,
             hovertemplate=f"{nom} · %{{x}} ans : %{{y:.1f}}<extra></extra>"))
-        derniere = max(i for i, v in enumerate(vals) if v is not None and not np.isnan(v))
-        fig.add_annotation(**_annot(t, classes[derniere], vals[derniere], f"<b>{nom}</b>", c,
-                                    xanchor="left", xshift=6))
+        valides = [i for i, v in enumerate(vals) if v is not None and not np.isnan(v)]
+        if not valides:
+            continue
+        fig.add_annotation(**_annot(t, classes[valides[-1]], vals[valides[-1]], f"<b>{nom}</b>",
+                                    c, xanchor="left", xshift=6))
     valides = [(i, v) for i, v in enumerate(hommes) if v is not None and not np.isnan(v)]
     if valides:
         i, v = max(valides, key=lambda iv: iv[1])
-        fig.add_annotation(x=classes[i], y=v, text=f"Pic : {fmt_number(v, 0)} à {classes[i]} ans",
+        fig.add_annotation(x=classes[i], y=v,
+                           text=f"Pic : {fmt_number(v, 0)} à {classes[i].replace('-', '–')} ans",
                            showarrow=True, arrowhead=0, arrowcolor=t["text-secondary"], ax=40,
                            ay=-28, font=dict(size=12, color=t["text-primary"]))
     return _base(fig, scheme, hovermode="x unified", showlegend=False,
@@ -296,13 +304,17 @@ def heatmap_jour_heure(z, masque, jours, scheme: str, fmt_hover: str,
 
 
 def barres_heure(heures, valeurs, scheme: str, fmt=lambda v: fmt_number(v)) -> go.Figure:
+    """Valeurs NaN = sous le seuil : barre grisée basse, « effectif trop faible » au survol."""
     t = tokens(scheme)
-    imax = int(np.nanargmax(valeurs)) if len(valeurs) else -1
+    vals = np.array(valeurs, dtype=float)
+    imax = int(np.nanargmax(vals)) if np.isfinite(vals).any() else -1
+    plancher = np.nanmax(vals) * 0.04 if np.isfinite(vals).any() else 0
     fig = go.Figure(go.Bar(
-        x=heures, y=valeurs, marker_line_width=0, marker_cornerradius=2,
-        marker_color=[t["grav-tue"] if i == imax else t["data-neutre"]
-                      for i in range(len(valeurs))],
-        customdata=[fmt(v) for v in valeurs],
+        x=heures, y=np.where(np.isnan(vals), plancher, vals), marker_line_width=0,
+        marker_cornerradius=2,
+        marker_color=[t["seq-na"] if np.isnan(v) else t["grav-tue"] if i == imax
+                      else t["data-neutre"] for i, v in enumerate(vals)],
+        customdata=["effectif trop faible" if np.isnan(v) else fmt(v) for v in vals],
         hovertemplate="%{x} h : %{customdata}<extra></extra>"))
     return _base(fig, scheme, margin=dict(l=8, r=8, t=8, b=8), bargap=0.15,
                  xaxis=dict(dtick=3, ticksuffix=" h"), yaxis=dict(showticklabels=False))
@@ -393,10 +405,10 @@ def pareto(segments, parts, cumul, seuil, scheme: str) -> go.Figure:
     fig.add_trace(go.Scatter(
         x=segments, y=cumul, mode="lines+markers", line=dict(color=t["text-primary"], width=2),
         marker=dict(size=5), hovertemplate="Cumul : %{y:.1f} %<extra></extra>"))
-    fig.add_hline(y=seuil, line=dict(color=t["grav-tue"], width=1.5, dash="dash"))
+    fig.add_hline(y=seuil, line=dict(color=t["text-secondary"], width=1.5, dash="dash"))
     fig.add_annotation(**_annot(t, n80, seuil,
                                 f"<b>{n80 + 1} segments = {fmt_pct(cumul[n80], 0)}</b>",
-                                t["grav-tue"], xanchor="left", yanchor="top", xshift=10,
+                                t["text-primary"], xanchor="left", yanchor="top", xshift=10,
                                 yshift=-6))
     return _base(fig, scheme, showlegend=False, margin=dict(l=8, r=8, t=16, b=8),
                  xaxis=dict(tickangle=-35, tickfont=dict(size=11)),

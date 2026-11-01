@@ -56,8 +56,22 @@ def _nuits_weekend(g: pd.DataFrame):
 def titre():
     t = territoires().dropna(subset=["taux_tues_million"])
     ratio = t["taux_tues_million"].max() / t["taux_tues_million"].min()
-    return ("Les départements ruraux comptent", f"jusqu'à {fmt_number(ratio, 0)} fois plus de "
-            "tués par habitant.")
+    return ("Selon le département, le risque de mourir sur la route",
+            f"varie de 1 à {fmt_number(ratio, 0)}.")
+
+
+def titre_carte(col: str, quoi: str) -> str:
+    t = territoires().dropna(subset=[col])
+    return f"{t.loc[t[col].idxmax(), 'nom_dep']} compte le plus de {quoi} par habitant"
+
+
+def titre_meteo() -> str:
+    e = da.modele("meteo")["effets"]["pluie faible"]
+    if e["ic_haut"] < 1:
+        return "Les jours de pluie ne comptent pas plus d'accidents"
+    if e["ic_bas"] > 1:
+        return "Les jours de pluie comptent plus d'accidents"
+    return "Pas d'effet mesurable de la pluie sur le nombre d'accidents"
 
 
 def chapeau():
@@ -66,7 +80,7 @@ def chapeau():
     pluie = m["pluie faible"]["rr"]
     phrase_pluie = ("la pluie, elle, n'augmente pas le nombre d'accidents" if pluie <= 1
                     else "la pluie augmente le nombre d'accidents")
-    return (f"La nuit du week-end, un accident tue {fmt_number(nuit, 1)} victimes sur 100, contre "
+    return (f"La nuit du week-end, {fmt_number(nuit, 1)} victimes sur 100 sont tuées, contre "
             f"{fmt_number(moy, 1)} en moyenne ; {phrase_pluie}.")
 
 
@@ -74,20 +88,23 @@ def et_alors():
     m = da.modele("meteo")["effets"]
     pp = m["premiere_pluie"]
     sig = not (pp["ic_bas"] <= 1 <= pp["ic_haut"])
-    return ("L'heure et le lieu pèsent plus que la météo : un tarif ou une offre « à l'usage » "
-            "doit d'abord regarder quand et où l'on roule. "
+    return ("Le lieu et l'heure font fortement varier la gravité : une offre « à l'usage » "
+            "gagne à regarder quand et où l'on roule. "
             + ("La première pluie après une période sèche ressort comme un moment à risque."
                if sig and pp["rr"] > 1 else
-               "L'effet « première pluie » n'est pas mesurable dans ces données."))
+               "La première pluie après une période sèche n'a pas d'effet significatif sur le "
+               "nombre d'accidents."))
 
 
-def legende(bornes, unite):
+def legende(bornes, unite, avec_masques: bool):
     if len(bornes) < 2:
         return None
     items = [html.Span([html.Span(className=f"pastille leg-seq-{i + 1}"),
                         f"{fmt_number(bornes[i], 0)} – {fmt_number(bornes[i + 1], 0)}"])
              for i in range(len(bornes) - 1)]
-    items.append(html.Span([html.Span(className="pastille leg-seq-na"), "effectif trop faible"]))
+    if avec_masques:
+        items.append(html.Span([html.Span(className="pastille leg-seq-na"),
+                                "effectif trop faible"]))
     return html.Div(className="legende-classes", children=[html.Span(unite), *items])
 
 
@@ -102,20 +119,20 @@ def layout(**_):
         scene_header(NUM, "Où et quand", debut, accent, chapeau()),
         html.Div(id="s05-kpis"),
         html.Div(className="grille-2", children=[
-            carte("s05-carte-vict", "Les victimes se concentrent autour des villes",
+            carte("s05-carte-vict", titre_carte("taux_victimes_100k", "victimes"),
                   "Victimes pour 100 000 habitants et par an."),
-            carte("s05-carte-tues", "Les tués, eux, sont à la campagne",
+            carte("s05-carte-tues", titre_carte("taux_tues_million", "tués"),
                   "Tués par million d'habitants et par an."),
         ]),
         html.Div(className="grille-2", children=[
-            chart_card("s05-heatmap", "Les nuits de week-end sont les plus meurtrières",
+            chart_card("s05-heatmap", "Accidents et létalité selon le jour et l'heure",
                        "Jour de la semaine × heure de l'accident ; plus la case est foncée, plus "
                        "la valeur est élevée.", da.SOURCE_BAAC,
                        "accidents corporels, ou létalité = tués / victimes × 100 ; cellules sous "
                        "30 victimes grisées", hauteur=340, mobile=True,
                        controles=bascule("s05-mode", ["Accidents", "Létalité"], "Létalité",
                                          "Mesure")),
-            chart_card("s05-meteo", "La pluie ne fait pas plus d'accidents",
+            chart_card("s05-meteo", titre_meteo(),
                        "Risque relatif d'accident un jour donné, par rapport à un jour sec.",
                        f"{da.SOURCE_BAAC} ; Météo-France, données quotidiennes",
                        "GLM de Poisson (quasi-Poisson) sur le nombre d'accidents par "
@@ -147,20 +164,24 @@ def kpis(filtres, scheme):
                      "l'autre : un argument pour un zonage fondé sur la gravité.", source=src_t)
 
     g = creneaux(periode, dep)
-    ok = g[g["victimes"] >= SEUIL]
+    # Tranches de 3 h : une case jour × heure seule est trop bruitée pour un KPI
+    tr = g.groupby([g.index.get_level_values(0), g.index.get_level_values(1) // 3]).sum()
+    ok = tr[tr["victimes"] >= SEUIL]
     k3 = None
     if len(ok):
         let = letalite(ok["tues"], ok["victimes"])
-        j, h = let.idxmax()
+        j, h3 = let.idxmax()
         tot = g.sum()
         k3 = kpi_card(
-            "s05-k3", "Créneau le plus létal", "tabler:clock", f"{C.JOURS[j]} {h} h", texte=True,
+            "s05-k3", "Créneau le plus létal", "tabler:clock",
+            f"{C.JOURS[j]} {h3 * 3} h–{h3 * 3 + 3} h", texte=True,
             deltas=[{"texte": f"{fmt_number(let.max(), 1)} tués / 100 victimes", "sens": "neutre"}],
             leader=("tabler:chart-dots", ["Moyenne : ", html.B(fmt_number(letalite(
                 tot["tues"], tot["victimes"]), 1))]),
-            lire="Jour et heure où un accident est le plus souvent mortel (créneaux d'au moins "
-                 "30 victimes).", assureur="Les heures de conduite comptent : un levier pour les "
-            "offres à l'usage et la prévention ciblée.",
+            lire="Tranche de 3 heures où une victime est le plus souvent tuée (tranches d'au "
+                 "moins 30 victimes).",
+            assureur="Les heures de conduite comptent : un levier pour les offres à l'usage et "
+                     "la prévention ciblée.",
             source=f"Source : {da.SOURCE_BAAC} · {da.libelle_territoire(dep)}.")
     if k3 is None:
         k3 = kpi_card("s05-k3", "Créneau le plus létal", "tabler:clock", "—",
@@ -181,9 +202,9 @@ def kpis(filtres, scheme):
         assureur="Un effet faible ou nul : la météo seule ne justifie pas une alerte dédiée.",
         source=f"Source : modèle GLM national {CUMUL} ({da.SOURCE_BAAC} ; Météo-France).")
     return kpi_row([
-        carte_dep("s05-k1", "Taux de tués le plus élevé", "tabler:trending-up", haut,
+        carte_dep("s05-k1", "Taux de tués maximal", "tabler:trending-up", haut,
                   f"Rang 1 sur {len(t)} · "),
-        carte_dep("s05-k2", "Taux de tués le plus faible", "tabler:trending-down", bas,
+        carte_dep("s05-k2", "Taux de tués minimal", "tabler:trending-down", bas,
                   f"Rang {len(t)} sur {len(t)} · "),
         k3, k4])
 
@@ -199,7 +220,8 @@ def _cartes(nom, dep, scheme):
     if sel:
         puces.append(chip_filtre(f"Filtre : {da.noms_departements().get(dep, dep)}",
                                  {"type": "s05-effacer", "index": nom}, effacable=True))
-    return fig, mob, legende(bornes, f"{unite[0].upper()}{unite[1:]} :"), puces
+    return fig, mob, legende(bornes, f"{unite[0].upper()}{unite[1:]} :",
+                             bool(t[col].isna().any())), puces
 
 
 @callback(Output(graph_id("s05-carte-vict"), "figure"),
@@ -232,7 +254,7 @@ def filtrer_par_clic(clic_v, clic_t, effacer):
 
 @callback(Output(graph_id("s05-heatmap"), "figure"),
           Output(graph_id("s05-heatmap-mobile"), "figure"),
-          Output("s05-heatmap-puces", "children"),
+          Output("s05-heatmap-puces", "children"), Output("s05-heatmap-titre", "children"),
           Input(bascule_id("s05-mode"), "value"), *ENTREES)
 def heatmap(mode, filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
@@ -244,6 +266,8 @@ def heatmap(mode, filtres, scheme):
         fig = F.heatmap_jour_heure(z, masque, C.JOURS, scheme, "%{z:,.0f} accidents")
         par_h = g.groupby(level=1)["accidents"].sum()
         mob = F.barres_heure(list(range(24)), par_h.tolist(), scheme)
+        titre_h = (f"Les accidents culminent vers {int(par_h.idxmax())} h"
+                   if par_h.sum() else "Accidents selon le jour et l'heure")
     else:
         let = letalite(g["tues"], g["victimes"].replace(0, np.nan))
         z = let.to_numpy().reshape(7, 24)
@@ -251,12 +275,21 @@ def heatmap(mode, filtres, scheme):
         fig = F.heatmap_jour_heure(z, masque, C.JOURS, scheme, "%{z:.1f} tués / 100 victimes")
         par_h = g.groupby(level=1)[["tues", "victimes"]].sum()
         vals = letalite(par_h["tues"], par_h["victimes"]).where(par_h["victimes"] >= SEUIL)
-        mob = F.barres_heure(list(range(24)), vals.fillna(0).tolist(), scheme,
+        mob = F.barres_heure(list(range(24)), vals.tolist(), scheme,
                              fmt=lambda v: fmt_number(v, 1))
+        nuit = par_h.loc[0:5].sum()
+        jour = par_h.loc[6:23].sum()
+        titre_h = "Létalité selon le jour et l'heure"
+        if nuit["victimes"] >= SEUIL and jour["victimes"] >= SEUIL:
+            fois = (letalite(nuit["tues"], nuit["victimes"])
+                    / letalite(jour["tues"], jour["victimes"]))
+            if fois >= 1.2:
+                titre_h = (f"Entre minuit et 6 h, une victime est {fmt_number(fois, 1)} fois "
+                           "plus souvent tuée")
         if masque.all():
             fig = F.message_figure("Moins de 30 victimes par créneau : létalité non affichée",
                                    scheme)
-    return fig, mob, puces
+    return fig, mob, puces, titre_h
 
 
 @callback(Output(graph_id("s05-meteo"), "figure"), *ENTREES)

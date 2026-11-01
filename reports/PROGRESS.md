@@ -21,10 +21,16 @@ reports/phase-X.md, commit). Tous les autres garde-fous s'appliquent.
 - Phase 4 commencée : app/app.py (filtres URL/session, progression), app/data_access.py,
   app/figures.py, app/components/scene_utils.py, app/pages/s02_vue_ensemble.py (à vérifier).
 
-### Reste (phase 4) — une scène = un commit, ordre 02 → 03 → 04 → 05 → 06 → 01 → 07 → 08
-- [ ] 02 Vue d'ensemble  - [ ] 03 Paradoxe  - [ ] 04 Qui  - [ ] 05 Où et quand
-- [ ] 06 Ce qui change  - [ ] 01 Accueil  - [ ] 07 Simulateur  - [ ] 08 Méthode
-- [ ] relecture sous-agent, reports/phase-4.md
+### Reste (phase 4)
+- [x] 02 · 03 · 04 · 05 · 06 · 01 · 07 · 08 : écrites, un commit par scène
+- [x] QA filtres : sandbox/qa_filtres.py (8 pages × 5 filtres) sans erreur
+- [x] Captures reports/screens/phase-4/
+- [ ] Relecture sous-agent phase 4 (en cours) -> corrections
+- [ ] reports/phase-4.md + commit
+
+### Serveur
+- App : `DASH_QA=1 .venv/Scripts/python app/app.py` -> http://127.0.0.1:8050 ; les nouvelles pages
+  exigent un redémarrage (arrêter seulement le processus dont la ligne de commande contient app/app.py).
 
 ### Constats chiffrés (G3) déjà établis
 - 02 : tués 2025 = 3 263 (indice 100,6 vs 2019) ; victimes −7 %.

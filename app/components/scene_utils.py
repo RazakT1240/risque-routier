@@ -6,7 +6,7 @@ import pandas as pd
 from dash import Input
 
 from app import data_access as da
-from app.components.format import NA, delta, fmt_number, fmt_pct
+from app.components.format import NA, delta, delta_points, fmt_number, fmt_pct
 from pipeline import config as C
 from pipeline.indicators import masque_seuil
 
@@ -41,8 +41,10 @@ def taux_masque(num: float, den: float, eff: float, facteur: float = 1.0):
 
 
 def deltas_annuels(serie: pd.Series, periode: str, plus_est_mauvais: bool | None = True,
-                   decimals: int = 1) -> list[dict]:
-    """▲▼ vs N−1 et vs 2019 pour l'année choisie ; rien en cumul."""
+                   decimals: int = 1, points: bool = False) -> list[dict]:
+    """▲▼ vs N−1 et vs 2019 pour l'année choisie ; rien en cumul.
+    `points=True` pour une part ou un taux pour 100 : écart en points, pas en %."""
+    fonction = delta_points if points else delta
     if periode == da.PERIODE_CUMUL:
         return [{"texte": f"Cumul {da.LIBELLE_PERIODE_CUMUL}", "sens": "neutre"}]
     a = int(periode)
@@ -50,10 +52,10 @@ def deltas_annuels(serie: pd.Series, periode: str, plus_est_mauvais: bool | None
     if pd.isna(serie.get(a)):
         return out
     if a - 1 in serie.index:
-        out.append(delta(serie[a], serie[a - 1], str(a - 1), plus_est_mauvais, decimals))
-    if a != da.PREMIERE_ANNEE:
-        out.append(delta(serie[a], serie[da.PREMIERE_ANNEE], str(da.PREMIERE_ANNEE),
-                         plus_est_mauvais, decimals))
+        out.append(fonction(serie[a], serie[a - 1], str(a - 1), plus_est_mauvais, decimals))
+    if a not in (da.PREMIERE_ANNEE, da.PREMIERE_ANNEE + 1):
+        out.append(fonction(serie[a], serie[da.PREMIERE_ANNEE], str(da.PREMIERE_ANNEE),
+                            plus_est_mauvais, decimals))
     return out
 
 

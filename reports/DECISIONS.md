@@ -37,8 +37,17 @@ Format : décision — justification (une ligne).
 - Scène 04, KPI 3 : la ligne leader donne la létalité des 2RM « sans équipement » (secu = 0) seulement si l'effectif ≥ 30 ; « Indéterminé » n'est pas compté comme sans casque.
 - Parts et rapports (part des accidents en agglo, ratio H/F, part des 2RM…) : variations affichées en neutre — ni favorables ni défavorables pour l'assureur ; les ▲▼ restent.
 - Titres-messages : générés au chargement depuis les données nationales cumulées ; les KPI et graphiques suivent les filtres.
+- Séparateur de milliers : espace insécable U+00A0 (et non l'espace fine U+202F, quasi invisible à l'écran dans Inter) — même séparateur que les figures Plotly.
+- Simulateur : la jauge et la phrase affichent un risque relatif (probabilité du profil / part observée de blessés graves, 18 %) et non un rapport de cotes présenté comme un risque (relecture, B2) ; les rapports de cotes restent cités comme tels dans l'encart. Bouton « Comparer à la moyenne » au lieu d'un interrupteur (BRIEF : bouton).
+- Variations des parts et des taux pour 100 (létalité) affichées en points (« ▲ +0,8 pt ») ; comptages et taux par habitant en % relatif.
+- Titres des cartes graphiques générés depuis les données filtrées (ou neutres quand aucun constat ne s'impose) ; le titre-message de scène reste national.
+- Créneau le plus létal (scène 05) : tranches de 3 h (une case jour × heure isolée est trop bruitée).
+- Matrice de la scène 04 : parts de victimes calculées sur tous les types avant d'écarter « Autre » et les types sous le seuil.
+- Textes « Pour l'assureur » : aucune affirmation chiffrée hors données ; part des 2RM dans le trafic citée comme « À renseigner » (G8).
+- Liens des sources (page Méthode) : domaines officiels seulement (pas d'URL de jeu de données citée de mémoire).
 
 ## Constats contraires aux hypothèses (G3)
 - Scène 05, météo : la pluie est associée à **moins** d'accidents par département-jour (pluie faible RR 0,93, IC 0,93–0,94 ; pluie forte 0,93 ; gel 0,91), et « première pluie » n'a pas d'effet significatif (RR 1,01, IC 0,98–1,04). Le titre de la scène 05 ne dira donc pas que les premières pluies sont critiques.
 - Scène 04 : la létalité des 2RM (4,0 tués / 100 victimes) est inférieure à celle des occupants de voiture (4,9) ; c'est sur le taux de gravité que les 2RM ressortent.
-- Séparateur de milliers : espace insécable U+00A0 (et non l'espace fine U+202F, quasi invisible à l'écran dans Inter) — même séparateur que les figures Plotly.
+- Scène 05 : les cases les plus létales sont des nuits de semaine (mercredi 3 h sur le cumul), pas seulement de week-end ; le titre de la heatmap est désormais calculé (« Entre minuit et 6 h, une victime est X fois plus souvent tuée »).
+- Scène 05 : le titre ne parle plus de « départements ruraux » (non calculé) mais de l'écart mesuré entre départements (de 1 à 7).
