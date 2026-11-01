@@ -35,14 +35,17 @@ def sparkline(valeurs: list, hauteur: int = 28) -> html.Div:
 def kpi_card(kpi_id: str, label: str, icon: str, valeur: str, *, deltas: list[dict] = (),
              leader: tuple[str, list] | None = None, spark: list | None = None,
              lire: str, assureur: str, source: str, aria: str | None = None,
-             indisponible: bool = False, compte: int | None = None) -> html.Div:
+             indisponible: bool = False, compte: int | None = None,
+             texte: bool = False) -> html.Div:
     """`valeur` est déjà formatée (fmt_number / fmt_pct) ; `deltas` vient de format.delta.
-    `compte` (entier) active le comptage animé au premier affichage (app.js)."""
+    `compte` (entier) active le comptage animé au premier affichage (app.js).
+    `texte=True` : valeur textuelle (nom, créneau) en corps réduit, sur 2 lignes au plus."""
     attrs = {"data-count": str(compte)} if compte is not None else {}
     na = indisponible or valeur == NA
     valeur_node = (html.Div([html.Span(NA, className="kpi-value kpi-na"),
                              html.Span(" Donnée indisponible", className="kpi-na-texte")])
-                   if na else html.Div(valeur, className="kpi-value", **attrs))
+                   if na else html.Div(valeur, className="kpi-value kpi-value-texte" if texte
+                                       else "kpi-value", **attrs))
 
     recto = html.Div(className="kpi-face", children=[
         html.Div(className="kpi-head", children=[

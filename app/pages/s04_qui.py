@@ -148,7 +148,7 @@ def kpis(filtres, scheme):
     if len(valides):
         pic = valides.loc[valides["taux"].idxmax()]
         k1 = kpi_card("s04-k1", "Âge le plus exposé", "tabler:user-exclamation",
-                      f"{pic['classe_age']} ans",
+                      f"{str(pic['classe_age']).replace('-', '–')} ans", texte=True,
                       deltas=[{"texte": f"{fmt_number(pic['taux'], 0)} victimes graves "
                                         "/ 100 000 hab.", "sens": "neutre"}],
                       leader=("tabler:gender-bigender",

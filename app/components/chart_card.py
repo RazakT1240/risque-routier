@@ -46,13 +46,22 @@ def chip_filtre(texte: str, chip_id: dict | str | None = None, effacable: bool =
 
 def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *,
                figure=None, hauteur: int = 340, puces: list | None = None,
-               controles=None, corps=None, aria: str | None = None) -> html.Section:
-    """`corps` remplace le graphique (ex. message « effectif trop faible »)."""
+               controles=None, corps=None, aria: str | None = None,
+               mobile: bool = False, legende=None) -> html.Section:
+    """`corps` remplace le graphique (ex. message « effectif trop faible »).
+    `mobile=True` ajoute un second graphique `<nom>-mobile` affiché sous 768 px (DESIGN §10),
+    le principal étant alors masqué sur mobile. `legende` s'affiche sous le graphique."""
     avec_graphe = corps is None
     graphe = corps if not avec_graphe else dcc.Loading(
         type="dot", delay_show=300, color="var(--accent)",
         children=dcc.Graph(id=graph_id(nom), figure=figure or FIGURE_VIDE, config=GRAPH_CONFIG,
                            style={"height": f"{hauteur}px"}, className="chart-graph"))
+    if avec_graphe and mobile:
+        graphe = html.Div([
+            html.Div(graphe, className="visible-desktop"),
+            html.Div(className="visible-mobile", children=dcc.Graph(
+                id=graph_id(f"{nom}-mobile"), figure=FIGURE_VIDE, config=GRAPH_CONFIG,
+                style={"height": f"{hauteur}px"}))])
     return html.Section(className="carte chart-card", role="figure",
                         **{"aria-label": aria or (titre if isinstance(titre, str) else nom)},
                         children=[
@@ -68,6 +77,7 @@ def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *
         dmc.Group(id=f"{nom}-puces", gap=8, children=puces or []),
         controles,
         graphe,
+        legende,
         html.Div(className="chart-foot caption", children=[
             html.Span(f"Source : {source}"), html.Span(" · "),
             html.Span(f"Définition : {definition}")]),

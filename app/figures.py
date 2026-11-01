@@ -328,17 +328,18 @@ def risques_relatifs(libelles, rr, bas, haut, scheme: str, alerte=None) -> go.Fi
     t = tokens(scheme)
     couleurs = [t["grav-tue"] if lb == alerte else t["data-neutre"] for lb in libelles]
     fig = go.Figure(go.Scatter(
-        x=rr, y=libelles, mode="markers+text", orientation="h",
+        x=rr, y=libelles, mode="markers", orientation="h",
         marker=dict(size=12, color=couleurs, symbol="square"),
         error_x=dict(type="data", array=[h - r for r, h in zip(rr, haut, strict=True)],
                      arrayminus=[r - b for r, b in zip(rr, bas, strict=True)],
                      thickness=1.25, width=4, color=t["text-secondary"]),
-        text=[fmt_ratio(r) for r in rr], textposition="middle right",
-        textfont=dict(color=t["text-primary"], size=12),
         customdata=np.column_stack([bas, haut]),
         hovertemplate=("%{y} : × %{x:.2f}<br>IC 95 % : %{customdata[0]:.2f} – "
                        "%{customdata[1]:.2f}<extra></extra>")))
     fig.add_vline(x=1, line=dict(color=t["text-secondary"], width=1))
+    for lb, r, h in zip(libelles, rr, haut, strict=True):
+        fig.add_annotation(**_annot(t, h, lb, fmt_ratio(r), t["text-primary"], xanchor="left",
+                                    xshift=8))
     lo, hi = min(bas), max(haut)
     marge = (hi - lo) * 0.35 + 0.02
     return _base(fig, scheme, margin=dict(l=8, r=8, t=8, b=8), showlegend=False,
