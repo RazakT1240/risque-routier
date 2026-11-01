@@ -9,6 +9,8 @@ from design.theme import THEME
 ROOT = Path(__file__).resolve().parents[1]
 AUTORISES = {ROOT / "design" / "tokens.py", ROOT / "app" / "assets" / "custom.css"}
 DOSSIERS = ["app", "design", "pipeline", "sandbox"]
+# Bibliothèques tierces minifiées (ECharts) : hors du périmètre de G9
+TIERS = ROOT / "app" / "assets" / "vendor"
 # Hexadécimaux 3, 4, 6, 8 chiffres et fonctions de couleur rgb(), rgba(), hsl(), hsla()
 HEX = re.compile(r"#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})(?![0-9A-Za-z_-])"
                  r"|\b(?:rgba?|hsla?)\(", re.IGNORECASE)
@@ -17,7 +19,8 @@ HEX = re.compile(r"#(?:[0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{3,4})(?![0-9A-Z
 def fichiers_source():
     for d in DOSSIERS:
         for p in (ROOT / d).rglob("*"):
-            if p.suffix in {".py", ".css", ".js"} and "__pycache__" not in p.parts:
+            if (p.suffix in {".py", ".css", ".js"} and "__pycache__" not in p.parts
+                    and TIERS not in p.parents):
                 yield p
 
 

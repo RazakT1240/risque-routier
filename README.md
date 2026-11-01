@@ -63,6 +63,7 @@ métropolitaine ou un département), conservés dans l'URL (`?annee=2025&dep=29`
 pipeline/   lecture brute, corrections, table usager enrichie, agrégats Parquet, GLM (indépendant de Dash)
 design/     tokens (source unique des couleurs), thème Mantine, templates Plotly, illustration du héros
 app/        app.py, data_access.py (Parquet en cache), figures.py, components/, pages/, assets/
+            echarts.py (jauges, rose, radar) ; ECharts 5.5.1 local dans assets/vendor/ (Apache-2.0)
 tests/      contrats de données, formules, design, formats
 sandbox/    démos des composants (données factices) et scripts de QA (playwright)
 reports/    inventaire, contrôles G4, décisions, rapports de phase, captures, synthèse

@@ -1,8 +1,8 @@
 """Callbacks partagés par toutes les pages : actions du menu ⋯ des cartes graphiques.
 
 - Agrandir : copie la figure dans une modale plein écran.
-- Télécharger en PNG : Plotly.downloadImage côté client.
-- Voir les données : tableau construit depuis les traces de la figure.
+- Télécharger en PNG : Plotly.downloadImage (ou ECharts getDataURL) côté client.
+- Voir les données : tableau construit depuis les traces de la figure (ou la charge ECharts).
 """
 
 from __future__ import annotations
@@ -18,8 +18,10 @@ MAX_LIGNES = 400
 
 def modales() -> html.Div:
     return html.Div([
-        dmc.Modal(id="modal-zoom", size="90%", centered=True, title="", children=dcc.Graph(
-            id="modal-graph", config=GRAPH_CONFIG, style={"height": "70vh"})),
+        dmc.Modal(id="modal-zoom", size="90%", centered=True, title="", children=[
+            dcc.Graph(id="modal-graph", config=GRAPH_CONFIG, style={"height": "70vh"}),
+            html.Div(id="modal-echart", style={"height": "70vh", "display": "none"}),
+            dcc.Store(id="modal-echart-data"), dcc.Store(id="modal-echart-sink")]),
         dmc.Modal(id="modal-data", size="lg", centered=True, title="Données du graphique",
                   children=html.Div(id="modal-data-body")),
     ])
@@ -62,35 +64,47 @@ def table_depuis_figure(fig: dict) -> list[list]:
 def register(app) -> None:
     @app.callback(
         Output("modal-zoom", "opened"), Output("modal-graph", "figure"),
-        Output("modal-zoom", "title"),
+        Output("modal-zoom", "title"), Output("modal-graph", "style"),
+        Output("modal-echart", "style"), Output("modal-echart-data", "data"),
         Input({"type": "cc-zoom", "index": ALL}, "n_clicks"),
         State({"type": "graph", "index": ALL}, "figure"),
         State({"type": "graph", "index": ALL}, "id"),
+        State({"type": "echart", "index": ALL}, "data"),
+        State({"type": "echart", "index": ALL}, "id"),
         State({"type": "cc-titre", "index": ALL}, "children"),
         State({"type": "cc-titre", "index": ALL}, "id"),
         prevent_initial_call=True)
-    def agrandir(clics, figures, ids, titres, ids_titres):
+    def agrandir(clics, figures, ids, charges, ids_e, titres, ids_titres):
+        rien = (no_update,) * 6
         if not ctx.triggered_id or not any(clics):
-            return no_update, no_update, no_update
+            return rien
         index = ctx.triggered_id["index"]
-        fig = _figure_par_index(index, figures, ids)
         titre = next((tt for tt, i in zip(titres, ids_titres, strict=False)
                       if i["index"] == index), "")
-        return (True, fig, titre) if fig else (no_update, no_update, no_update)
+        visible, cache = {"height": "70vh"}, {"height": "70vh", "display": "none"}
+        charge = _figure_par_index(index, charges, ids_e)
+        if charge:
+            return True, no_update, titre, cache, visible, charge
+        fig = _figure_par_index(index, figures, ids)
+        return (True, fig, titre, visible, cache, no_update) if fig else rien
 
     @app.callback(
         Output("modal-data", "opened"), Output("modal-data-body", "children"),
         Input({"type": "cc-data", "index": ALL}, "n_clicks"),
         State({"type": "graph", "index": ALL}, "figure"),
         State({"type": "graph", "index": ALL}, "id"),
+        State({"type": "echart", "index": ALL}, "data"),
+        State({"type": "echart", "index": ALL}, "id"),
         prevent_initial_call=True)
-    def voir_donnees(clics, figures, ids):
+    def voir_donnees(clics, figures, ids, charges, ids_e):
         if not ctx.triggered_id or not any(clics):
             return no_update, no_update
-        fig = _figure_par_index(ctx.triggered_id["index"], figures, ids)
-        if not fig:
+        index = ctx.triggered_id["index"]
+        charge = _figure_par_index(index, charges, ids_e)
+        fig = _figure_par_index(index, figures, ids)
+        if not charge and not fig:
             return no_update, no_update
-        lignes = table_depuis_figure(fig)
+        lignes = charge["tableau"] if charge else table_depuis_figure(fig)
         if not lignes:
             return True, html.P("Données non tabulables pour ce graphique.", className="body")
         avec_serie = any(ligne[0] for ligne in lignes)
@@ -107,6 +121,9 @@ def register(app) -> None:
         function(clics) {
             const t = window.dash_clientside.callback_context.triggered_id;
             if (!t || !clics.some(Boolean)) { return window.dash_clientside.no_update; }
+            if (window.routeEchartPng && window.routeEchartPng(t.index)) {
+                return window.dash_clientside.no_update;
+            }
             const id = JSON.stringify({index: t.index, type: "graph"});
             const conteneur = document.getElementById(id);
             const gd = conteneur && conteneur.querySelector(".js-plotly-plot");
@@ -116,6 +133,27 @@ def register(app) -> None:
         """,
         Output("png-sink", "data"),
         Input({"type": "cc-png", "index": ALL}, "n_clicks"),
+        prevent_initial_call=True)
+
+    # ECharts : chaque charge est dessinée côté client dans sa carte (ou dans la modale)
+    clientside_callback(
+        """
+        function(charge, id) {
+            if (charge && window.routeEchart) { window.routeEchart(id.index, charge); }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output({"type": "echart-sink", "index": MATCH}, "data"),
+        Input({"type": "echart", "index": MATCH}, "data"),
+        State({"type": "echart", "index": MATCH}, "id"))
+    clientside_callback(
+        """
+        function(charge) {
+            if (charge && window.routeEchartModal) { window.routeEchartModal(charge); }
+            return window.dash_clientside.no_update;
+        }
+        """,
+        Output("modal-echart-sink", "data"), Input("modal-echart-data", "data"),
         prevent_initial_call=True)
 
     # Bascule : le Select mobile recopie sa valeur dans le SegmentedControl (source unique)

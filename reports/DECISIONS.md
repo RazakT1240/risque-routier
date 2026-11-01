@@ -55,7 +55,7 @@ Format : décision — justification (une ligne).
 - Boîtes « âge des tués » : statistiques nationales précalculées dans le pipeline (non additives, G15), donc non filtrables par département (puce « France métropolitaine »).
 - Boîtes « dispersion des départements » : victimes pour 100 000 hab. (les tués par million seraient trop souvent masqués par le seuil, ce qui fausserait la distribution).
 - Deuxième série demandée par le propriétaire : menu latéral repliable (≥ 1200 px, mémorisé dans le navigateur), KPI plus fins (196 px, filet fin, liseré ambre sur la vedette), jauges semi-circulaires (létalité vs 2019 ; gravité du mode vs ensemble), rose des mois (saisonnalité), radar de gravité par contexte, calendrier années × mois, graphique de pente 2019 → 2025.
-- ECharts non ajouté : nouvelle dépendance interdite sans accord (G14) ; style reproduit avec Plotly. À trancher par le propriétaire.
+- ECharts ajouté à la demande du propriétaire (accord G14, 01/11/2026) : ECharts 5.5.1 copié dans `app/assets/vendor/` (aucun paquet pip, fonctionne hors ligne). Utilisé pour les jauges (scènes 02 et 04), la rose des mois (02) et le radar (04) ; Plotly reste pour le reste (cartes, Sankey, matrices). Options construites en Python depuis les tokens (`app/echarts.py`), format français et `prefers-reduced-motion` appliqués côté client (`app/assets/echarts_route.js`) ; menu ⋯ (agrandir, PNG, données) compatible. Le test G9 exclut `assets/vendor/` (code tiers minifié).
 - Remplissages semi-transparents calculés depuis les tokens (`tokens.transparence`), jamais de couleur en dur.
 
 ## Phase 5

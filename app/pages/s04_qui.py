@@ -9,9 +9,10 @@ import pandas as pd
 from dash import Input, Output, callback, html
 
 from app import data_access as da
+from app import echarts as E
 from app import figures as F
 from app.components.blocks import insight, scene_header, scene_layout, scene_nav
-from app.components.chart_card import chart_card, chip_filtre, graph_id
+from app.components.chart_card import chart_card, chip_filtre, echart_id, graph_id
 from app.components.format import fmt_number, fmt_pct, fmt_ratio
 from app.components.kpi_card import kpi_card, kpi_row
 from app.components.scene_utils import ENTREES, SEUIL, deltas_annuels, fmt_ou_na, lire
@@ -141,15 +142,15 @@ def layout(**_):
                        "Taux de gravité du mode choisi (rouge) et de l'ensemble des usagers "
                        "(gris), selon le moment et le lieu.", da.SOURCE_BAAC,
                        "taux de gravité = (tués + hospitalisés) / victimes ; contextes sous 30 "
-                       "victimes non tracés", hauteur=400,
+                       "victimes non tracés", hauteur=400, moteur="echarts",
                        controles=dmc.Select(id="s04-mode", data=RADAR_MODES, value="2RM",
                                             allowDeselect=False, w=220,
                                             comboboxProps={"withinPortal": True},
                                             **{"aria-label": "Mode de déplacement"})),
             chart_card("s04-jauge", "Gravité du mode choisi",
-                       "Part des victimes tuées ou hospitalisées ; repère noir : ensemble des "
+                       "Part des victimes tuées ou hospitalisées ; trait : ensemble des "
                        "usagers.", da.SOURCE_BAAC, "taux de gravité = (tués + hospitalisés) / "
-                       "victimes", hauteur=300),
+                       "victimes", hauteur=300, moteur="echarts"),
         ]),
         insight(et_alors()),
         scene_nav(*voisines(NUM)),
@@ -376,8 +377,8 @@ def _gravites(df):
     return out
 
 
-@callback(Output(graph_id("s04-radar"), "figure"), Output("s04-radar-puces", "children"),
-          Output("s04-radar-titre", "children"), Output(graph_id("s04-jauge"), "figure"),
+@callback(Output(echart_id("s04-radar"), "data"), Output("s04-radar-puces", "children"),
+          Output("s04-radar-titre", "children"), Output(echart_id("s04-jauge"), "data"),
           Output("s04-jauge-puces", "children"), Output("s04-jauge-titre", "children"),
           Input("s04-mode", "value"), *ENTREES)
 def radar_et_jauge(mode, filtres, scheme):
@@ -388,7 +389,7 @@ def radar_et_jauge(mode, filtres, scheme):
     tk = tokens(scheme)
     g_mode, g_tous = _gravites(c[c["type_usager"] == mode]), _gravites(c)
     axes = [lib for lib, *_ in CONTEXTES]
-    fig_r = F.radar(axes, {mode: g_mode, "Ensemble des usagers": g_tous},
+    fig_r = E.radar(axes, {mode: g_mode, "Ensemble des usagers": g_tous},
                     {mode: tk["grav-tue"], "Ensemble des usagers": tk["data-neutre"]}, scheme)
     ecarts = [(a, m - e) for a, m, e in zip(axes, g_mode, g_tous, strict=True) if m and e]
     titre_r = "Gravité selon le contexte"
@@ -399,12 +400,12 @@ def radar_et_jauge(mode, filtres, scheme):
     tot_m = c[c["type_usager"] == mode][["graves", "victimes"]].sum()
     tot = c[["graves", "victimes"]].sum()
     if tot_m["victimes"] < SEUIL or tot["victimes"] < SEUIL:
-        fig_j = F.message_figure("Moins de 30 victimes sur ce périmètre", scheme)
+        fig_j = E.message("Moins de 30 victimes sur ce périmètre", scheme)
         titre_j = f"Gravité : {mode}"
     else:
         gm = tot_m["graves"] / tot_m["victimes"] * 100
         gt = tot["graves"] / tot["victimes"] * 100
-        fig_j = F.jauge(gm, gt, 0, 100, scheme, suffixe=" %", lib_ref="ensemble des usagers",
+        fig_j = E.jauge(gm, gt, 0, 100, scheme, suffixe=" %", lib_ref="ensemble des usagers",
                         decimals=0)
         titre_j = f"{mode} : {fmt_pct(gm, 0)} des victimes gravement atteintes"
     return fig_r, puces, titre_r, fig_j, puces, titre_j

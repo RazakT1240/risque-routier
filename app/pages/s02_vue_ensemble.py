@@ -6,9 +6,10 @@ import dash
 from dash import Output, callback, html
 
 from app import data_access as da
+from app import echarts as E
 from app import figures as F
 from app.components.blocks import insight, scene_header, scene_layout, scene_nav
-from app.components.chart_card import chart_card, chip_filtre, graph_id
+from app.components.chart_card import chart_card, chip_filtre, echart_id, graph_id
 from app.components.format import fmt_number, fmt_pct
 from app.components.kpi_card import kpi_card, kpi_row
 from app.components.scene_utils import (
@@ -97,10 +98,11 @@ def layout(**_):
         html.Div(className="grille-2-1", children=[
             chart_card("s02-rose", "Saisonnalité des tués",
                        "Tués par mois de l'accident, sur la période et le territoire choisis.",
-                       da.SOURCE_BAAC, "usagers tués, par mois de l'accident", hauteur=380),
+                       da.SOURCE_BAAC, "usagers tués, par mois de l'accident", hauteur=380,
+                       moteur="echarts"),
             chart_card("s02-jauge", "Létalité de la période",
-                       "Tués pour 100 victimes ; repère noir : niveau de 2019.", da.SOURCE_BAAC,
-                       "létalité = tués / victimes × 100", hauteur=300),
+                       "Tués pour 100 victimes ; trait : niveau de 2019.", da.SOURCE_BAAC,
+                       "létalité = tués / victimes × 100", hauteur=300, moteur="echarts"),
         ]),
         chart_card("s02-entonnoir", "De l'accident au décès",
                    "Accidents corporels, victimes, victimes tuées ou hospitalisées, tués.",
@@ -268,8 +270,8 @@ MOIS_NOMS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "
              "septembre", "octobre", "novembre", "décembre"]
 
 
-@callback(Output(graph_id("s02-rose"), "figure"), Output("s02-rose-puces", "children"),
-          Output("s02-rose-titre", "children"), Output(graph_id("s02-jauge"), "figure"),
+@callback(Output(echart_id("s02-rose"), "data"), Output("s02-rose-puces", "children"),
+          Output("s02-rose-titre", "children"), Output(echart_id("s02-jauge"), "data"),
           Output("s02-jauge-puces", "children"), *ENTREES)
 def saisonnalite_et_jauge(filtres, scheme):
     periode, dep, scheme = lire(filtres, scheme)
@@ -277,11 +279,11 @@ def saisonnalite_et_jauge(filtres, scheme):
     m = da.filtre_table("s02_mois", periode, dep).groupby("mois")["tues"].sum().reindex(
         range(1, 13), fill_value=0)
     if m.sum() < SEUIL or m.min() == 0:
-        fig_r = (F.message_figure("Moins de 30 tués sur ce périmètre", scheme) if m.sum() < SEUIL
-                 else F.rose_mois(m.astype(int).tolist(), scheme))
+        fig_r = (E.message("Moins de 30 tués sur ce périmètre", scheme) if m.sum() < SEUIL
+                 else E.rose_mois(m.astype(int).tolist(), scheme))
         titre_r = "Saisonnalité des tués"
     else:
-        fig_r = F.rose_mois(m.astype(int).tolist(), scheme)
+        fig_r = E.rose_mois(m.astype(int).tolist(), scheme)
         mmax, mmin = int(m.idxmax()), int(m.idxmin())
         if m.min() >= SEUIL:
             titre_r = (f"{MOIS_NOMS[mmax - 1].capitalize()} compte "
@@ -293,14 +295,14 @@ def saisonnalite_et_jauge(filtres, scheme):
     ans = da.annees(periode)
     vict = s.loc[ans, "victimes"].sum()
     if vict < SEUIL:
-        fig_j = F.message_figure("Moins de 30 victimes sur ce périmètre", scheme)
+        fig_j = E.message("Moins de 30 victimes sur ce périmètre", scheme)
     else:
         let = letalite(s.loc[ans, "tues"].sum(), vict)
         ref = None
         a0 = da.PREMIERE_ANNEE
         if periode != da.PERIODE_CUMUL and int(periode) != a0 and s["victimes"][a0] >= SEUIL:
             ref = letalite(s["tues"][a0], s["victimes"][a0])
-        fig_j = F.jauge(let, ref, 0, max(10, let * 1.4), scheme, lib_ref=f"{a0}",
+        fig_j = E.jauge(let, ref, 0, max(10, let * 1.4), scheme, lib_ref=f"{a0}",
                         decimals=1)
     return fig_r, puces, titre_r, fig_j, puces
 

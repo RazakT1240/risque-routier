@@ -56,7 +56,7 @@
   DESIGN §2.1).
 - **Cartes KPI épurées** à votre demande (une variation, ligne leader au verso, source en infobulle) :
   écart assumé à DESIGN §6.2 et §12.
-- **ECharts** non ajouté (nouvelle dépendance, G14) : style reproduit avec Plotly ; reprise des bonnes idées
+- **ECharts** ajouté avec votre accord (jauges, rose des mois, radar ; local, sans pip) ; reprise des bonnes idées
   des deux dépôts de référence (Sankey, entonnoir, pyramide, treemap, jauges, rose, radar).
 - **Fond de carte en ligne** (tuiles Carto) ajouté à votre demande, en plus du fond simple hors ligne (DESIGN
   §8 excluait les fonds tuilés).
@@ -70,7 +70,7 @@
    métropole et France entière). Écart connu : le brief annonçait 58 841 accidents en 2019 et 47 745 en
    2020 ; le calcul donne 58 840 et 47 744.
 3. **Valider les décisions** de `reports/DECISIONS.md`, en particulier les écarts au design system.
-4. Décider si ECharts doit être ajouté.
+4. Étendre ECharts à d'autres graphiques si le rendu vous plaît.
 5. Remplacer, si vous le souhaitez, l'illustration générée du héros par une photo libre de droits.
 
 ## Améliorations possibles
