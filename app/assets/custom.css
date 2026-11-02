@@ -14,7 +14,7 @@
   --vedette-bg:#1B1F24;--vedette-text:#FFFFFF;--vedette-muted:#A6AEB9;--vedette-hausse:#EE6266;--vedette-baisse:#3FA37A;
   --on-image:#FFFFFF;--on-accent:#1B1F24;
   --hero-voile:linear-gradient(180deg,rgba(14,18,23,.15),rgba(14,18,23,.75));
-  --shadow-hover:0 4px 16px rgba(0,0,0,.06);
+  --shadow-hover:0 4px 16px rgba(0,0,0,.06);--shadow-eleve:0 10px 40px rgba(0,0,0,.08);
   --font-serif:Fraunces,Georgia,serif;--font-sans:Inter,system-ui,sans-serif;
   --radius-sm:6px;--radius-md:12px;--radius-lg:16px;
   --content-max:1280px;--header-h:64px;--navbar-w:240px;
@@ -30,7 +30,7 @@
   --accent-soft:rgba(242,183,5,.12);--focus-ring:#F2B705;
   --delta-baisse-soft:rgba(63,163,122,.16);--delta-hausse-soft:rgba(238,98,102,.16);
   --vedette-bg:#232B36;--vedette-text:#ECEEF1;--vedette-muted:#A6AEB9;--vedette-hausse:#EE6266;--vedette-baisse:#3FA37A;
-  --shadow-hover:none;--on-accent:#0E1217;
+  --shadow-hover:none;--on-accent:#0E1217;--shadow-eleve:0 16px 48px rgba(0,0,0,.45);
 }
 
 /* Mantine déclare ses variables sous :root[data-mantine-color-scheme=…] (spécificité 0,2,0) :
@@ -274,6 +274,12 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible,input:focus-visibl
   display:inline-flex;align-items:center;gap:6px;max-width:calc(100% - 24px)}
 .sim-badge-alerte{background:var(--delta-hausse-soft);color:var(--grav-tue);border-color:var(--grav-tue)}
 .sim-badge-neutre{background:var(--bg-surface);color:var(--text-secondary);border-color:var(--border)}
+/* Déconnexion (en-tête) — bouton-icône assorti au sélecteur de thème */
+.header-logout{display:inline-flex;align-items:center;justify-content:center;width:42px;height:42px;
+  border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--bg-surface);
+  color:var(--text-secondary);text-decoration:none;transition:background-color .15s,color .15s}
+.header-logout:hover{background:var(--bg-subtle);color:var(--text-primary)}
+.header-logout:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
 
 /* Méthode et données (scène 08) */
 .liste-methode{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}

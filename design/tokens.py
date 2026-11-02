@@ -34,6 +34,7 @@ LIGHT = {
     "vedette-baisse": "#3FA37A",
     "on-image": "#FFFFFF",
     "on-accent": "#1B1F24",
+    "shadow-eleve": "0 10px 40px rgba(0,0,0,.08)",
 }
 DARK = {
     "bg-page": "#0E1217",
@@ -64,6 +65,7 @@ DARK = {
     "vedette-baisse": "#3FA37A",
     "on-image": "#FFFFFF",
     "on-accent": "#0E1217",
+    "shadow-eleve": "0 16px 48px rgba(0,0,0,.45)",
 }
 SEQ = {
     "light": ["#F7EEDD", "#EBC981", "#D79B3C", "#AE6E1C", "#6E400F"],

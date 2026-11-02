@@ -21,7 +21,7 @@ import dash_mantine_components as dmc  # noqa: E402
 from dash import Dash, Input, Output, State, ctx, dcc, no_update  # noqa: E402
 
 import design.plotly_template  # noqa: E402,F401  (enregistre les templates)
-from app import callbacks_globaux  # noqa: E402
+from app import auth, callbacks_globaux  # noqa: E402
 from app import data_access as da  # noqa: E402
 from app.components import assistant_ui, shell  # noqa: E402
 from app.scenes import PAR_CHEMIN, SCENES  # noqa: E402
@@ -35,6 +35,7 @@ app = Dash(__name__, use_pages=True, pages_folder=str(HERE / "pages"),
            title="Risque routier · fréquence, gravité, coût",
            update_title=None, suppress_callback_exceptions=True)
 server = app.server
+auth.register(server)  # garde d'accès : connexion avant le tableau de bord
 # Langue du document (lecteurs d'écran, G12)
 app.index_string = app.index_string.replace("<html>", '<html lang="fr">', 1)
 

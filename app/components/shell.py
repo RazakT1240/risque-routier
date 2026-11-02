@@ -106,6 +106,9 @@ def header(annees, departements, annee_defaut) -> dmc.AppShellHeader:
                     lightIcon=DashIconify(icon="tabler:moon", width=18),
                     darkIcon=DashIconify(icon="tabler:sun", width=18),
                     **{"aria-label": "Basculer le thème clair / sombre"}),
+                html.A(DashIconify(icon="tabler:logout", width=18), href="/logout",
+                       className="header-logout", title="Se déconnecter",
+                       **{"aria-label": "Se déconnecter"}),
             ]),
         ]),
         html.Div(className="progress-track", children=html.Div(
