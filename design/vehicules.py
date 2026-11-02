@@ -3,7 +3,8 @@
 Images générées (aucun droit tiers), sans gradient décoratif (G11) : le relief vient de trois
 tons par volume (dessus clair / côté / face ombrée), lus dans tokens.VEHICULE_PALETTE (G9).
 
-Usage : python -m design.vehicules  ->  app/assets/vehicules/{voiture,moto,velo,pieton,camion}.svg
+Usage : python -m design.vehicules  ->  app/assets/vehicules/*.svg
+(voiture, moto, velo, pieton, camion, utilitaire, bus, edp, autre)
 """
 
 from __future__ import annotations
@@ -157,7 +158,57 @@ def pieton() -> str:
     return _svg(_ombre(130, 150, 34, 11) + bras + tronc + tete, "piéton")
 
 
-VEHICULES = {"voiture": voiture, "moto": moto, "velo": velo, "pieton": pieton, "camion": camion}
+def utilitaire() -> str:
+    h, c, f = P["corps-haut"], P["corps-cote"], P["corps-face"]
+    ah, ac, af = P["alt-haut"], P["alt-cote"], P["alt-face"]
+    roues = (_roue(*_iso(1.4, 4.3, 0)) + _roue(*_iso(6.3, 4.3, 0))
+             + _roue(*_iso(1.4, 0.3, 0), 6) + _roue(*_iso(6.3, 0.3, 0), 6))
+    cargo = _box(0, 0, 0.6, 5.0, 4, 2.9, ah, ac, af)
+    cabine = _box(5.0, 0, 0.6, 2.7, 4, 2.0, h, c, f)
+    pb = _poly([_iso(7.7, 0.4, 1.3), _iso(7.7, 3.6, 1.3),
+                _iso(7.7, 3.6, 2.4), _iso(7.7, 0.4, 2.4)], P["verre"])
+    phare = _poly([_iso(7.7, 0.3, 0.8), _iso(7.7, 1.1, 0.8),
+                   _iso(7.7, 1.1, 1.2), _iso(7.7, 0.3, 1.2)], P["phare"])
+    return _svg(_ombre(132, 150, 74) + roues + cargo + cabine + pb + phare, "utilitaire")
+
+
+def bus() -> str:
+    ah, ac, af = P["alt-haut"], P["alt-cote"], P["alt-face"]
+    roues = (_roue(*_iso(1.3, 4.3, 0)) + _roue(*_iso(7.0, 4.3, 0))
+             + _roue(*_iso(1.3, 0.3, 0), 6) + _roue(*_iso(7.0, 0.3, 0), 6))
+    corps = _box(0, 0, 0.6, 8.6, 4, 3.0, ah, ac, af)
+    # Bandeau vitré sur la face +x (une seule bande continue)
+    bande = _poly([_iso(0.5, 4, 2.4), _iso(8.1, 4, 2.4),
+                   _iso(8.1, 4, 3.3), _iso(0.5, 4, 3.3)], P["verre"])
+    pb = _poly([_iso(8.6, 0.4, 1.2), _iso(8.6, 3.6, 1.2),
+                _iso(8.6, 3.6, 2.9), _iso(8.6, 0.4, 2.9)], P["verre-ombre"])
+    return _svg(_ombre(132, 152, 82) + roues + corps + bande + pb, "bus ou car")
+
+
+def edp() -> str:
+    # Trottinette de profil : deux petites roues, plateau, colonne de direction, guidon
+    cadre = P["alt2-cote"]
+    r1x, r1y = 80, 132
+    r2x, r2y = 182, 132
+    roues = _roue_rayons(r1x, r1y, 18, P["roue"]) + _roue_rayons(r2x, r2y, 18, P["roue"])
+    plateau = f'<rect x="80" y="118" width="104" height="8" rx="4" fill="{cadre}"/>'
+    colonne = (f'<path d="M182,122 L186,60 M186,60 L166,60 M186,60 L206,60" fill="none" '
+               f'stroke="{cadre}" stroke-width="5" stroke-linecap="round" '
+               f'stroke-linejoin="round"/>')
+    return _svg(_ombre(130, 152, 92, 10) + roues + plateau + colonne, "trottinette ou EDP")
+
+
+def autre() -> str:
+    # Volume neutre non spécifié (type « autre »), sans attribut de véhicule identifiable
+    ah, ac, af = P["alt2-haut"], P["alt2-cote"], P["alt2-face"]
+    roues = (_roue(*_iso(1.6, 4.2, 0)) + _roue(*_iso(6.0, 4.2, 0))
+             + _roue(*_iso(1.6, 0.4, 0), 6) + _roue(*_iso(6.0, 0.4, 0), 6))
+    corps = _box(0.4, 0, 0.6, 7.0, 4, 2.4, ah, ac, af)
+    return _svg(_ombre(130, 150, 72) + roues + corps, "autre usager")
+
+
+VEHICULES = {"voiture": voiture, "moto": moto, "velo": velo, "pieton": pieton, "camion": camion,
+             "utilitaire": utilitaire, "bus": bus, "edp": edp, "autre": autre}
 
 
 def main() -> None:

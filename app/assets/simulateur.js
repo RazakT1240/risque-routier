@@ -6,7 +6,7 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
     calcul: function (type, ageIdx, sexe, nuit, pluie, hors, route, clics, m) {
       var comparer = (clics || 0) % 2 === 1;
       var nu = window.dash_clientside.no_update;
-      if (!m || !m.coefs) { return [nu, nu, nu, nu, nu, nu, nu, nu, nu, nu]; }
+      if (!m || !m.coefs) { return [nu, nu, nu, nu, nu, nu, nu, nu, nu, nu, nu, nu]; }
       var classe = m.niveaux.classe_age[ageIdx] || m.references.classe_age;
       var profil = {
         type_usager: type, classe_age: classe, sexe_lib: sexe,
@@ -62,13 +62,33 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
       var largeur = Math.max(pMoy, proba);
       var wMoy = (pMoy / largeur * 100).toFixed(1) + "%";
       var wProfil = (proba / largeur * 100).toFixed(1) + "%";
+
+      // Verdict qualitatif (toujours doublé d'un texte : jamais la couleur seule, G12)
+      var badge, badgeAlerte;
+      if (ratio >= 2) { badge = "Risque très élevé"; badgeAlerte = true; }
+      else if (ratio >= 1.3) { badge = "Risque élevé"; badgeAlerte = true; }
+      else if (ratio >= 0.77) { badge = "Proche de la moyenne"; badgeAlerte = false; }
+      else { badge = "Risque plus faible"; badgeAlerte = false; }
+      badge = badge + " · " + ratioTxt;
+      var badgeCls = "sim-badge " + (badgeAlerte ? "sim-badge-alerte" : "sim-badge-neutre");
+
       return [
         ratioTxt, probaTxt, phrase,
         { left: pos.toFixed(1) + "%" }, classeMarqueur,
         { display: comparer ? "block" : "none" },
         { width: wMoy }, { width: wProfil },
-        f1.format(pMoy * 100) + nbsp + "%", probaTxt
+        f1.format(pMoy * 100) + nbsp + "%", probaTxt,
+        badge, badgeCls
       ];
+    },
+    vehicule: function (type) {
+      var fichiers = {
+        "Piéton": "pieton", "Vélo": "velo", "EDP": "edp", "2RM": "moto",
+        "Voiture": "voiture", "Utilitaire": "utilitaire", "Poids lourd": "camion",
+        "Bus, car, tram": "bus", "Autre": "autre"
+      };
+      var f = fichiers[type] || "autre";
+      return ["/assets/vehicules/" + f + ".svg", "Illustration : " + (type || "usager")];
     },
     age: function (ageIdx, m) {
       if (!m) { return window.dash_clientside.no_update; }

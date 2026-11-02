@@ -115,9 +115,16 @@ def layout(**_):
             id="sim-route", data=n["catr_groupe"], value="Départementale", allowDeselect=False,
             comboboxProps={"withinPortal": True}, **{"aria-label": "Type de route"})),
     ]))
-    resultat = html.Section(className="carte", **{"aria-live": "polite"}, children=dmc.Stack(
-        gap=20, children=[
+    scene = html.Div(className="sim-scene", children=[
+        html.Div(className="sim-stage", children=html.Img(
+            id="sim-vehicule", className="sim-vehicule", src="/assets/vehicules/moto.svg",
+            alt="Illustration du profil d'usager sélectionné")),
+        html.Div(id="sim-badge", className="sim-badge sim-badge-neutre", children="—"),
+    ])
+    resultat = html.Section(className="carte carte-resultat", **{"aria-live": "polite"},
+                            children=dmc.Stack(gap=20, children=[
             html.H2("Le risque estimé", className="h2"),
+            scene,
             dmc.Group(gap=40, align="flex-end", children=[
                 html.Div([html.Div("Risque relatif", className="label"),
                           html.Div(id="sim-ratio", className="display num t-primary")]),
@@ -165,9 +172,15 @@ clientside_callback(
     Output("sim-marqueur", "className"), Output("sim-comparaison", "style"),
     Output("sim-comp-moy", "style"), Output("sim-comp-profil", "style"),
     Output("sim-comp-moy-txt", "children"), Output("sim-comp-profil-txt", "children"),
+    Output("sim-badge", "children"), Output("sim-badge", "className"),
     Input("sim-type", "value"), Input("sim-age", "value"), Input("sim-sexe", "value"),
     Input("sim-nuit", "checked"), Input("sim-pluie", "checked"), Input("sim-hors", "checked"),
     Input("sim-route", "value"), Input("sim-comparer", "n_clicks"), State("sim-modele", "data"))
+
+clientside_callback(
+    ClientsideFunction(namespace="simulateur", function_name="vehicule"),
+    Output("sim-vehicule", "src"), Output("sim-vehicule", "alt"),
+    Input("sim-type", "value"))
 
 clientside_callback(
     ClientsideFunction(namespace="simulateur", function_name="age"),
