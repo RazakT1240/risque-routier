@@ -11,6 +11,8 @@ import dash_mantine_components as dmc
 from dash import dcc, html
 from dash_iconify import DashIconify
 
+from app import i18n
+
 GRAPH_CONFIG = {"displayModeBar": False, "responsive": True}
 FIGURE_VIDE = {"data": [], "layout": {}}
 
@@ -31,11 +33,11 @@ def menu_actions(nom: str) -> dmc.Menu:
     return dmc.Menu(position="bottom-end", withinPortal=True, children=[
         dmc.MenuTarget(dmc.ActionIcon(
             DashIconify(icon="tabler:dots", width=18), variant="subtle", color="ardoise",
-            **{"aria-label": "Actions du graphique"})),
+            **{"aria-label": i18n.t("chart.actions")})),
         dmc.MenuDropdown([
-            item("zoom", "Agrandir", "tabler:arrows-maximize"),
-            item("png", "Télécharger en PNG", "tabler:download"),
-            item("data", "Voir les données", "tabler:table"),
+            item("zoom", i18n.t("chart.zoom"), "tabler:arrows-maximize"),
+            item("png", i18n.t("chart.png"), "tabler:download"),
+            item("data", i18n.t("chart.data"), "tabler:table"),
         ]),
     ])
 
@@ -95,12 +97,13 @@ def chart_card(nom: str, titre, sous_titre: str, source: str, definition: str, *
         graphe,
         legende,
         html.Div(className="chart-foot caption", children=[
-            html.Span(f"Source : {source}"), html.Span(" · "),
-            html.Span(f"Définition : {definition}")]),
+            html.Span(f"{i18n.t('chart.source')} : {source}"), html.Span(" · "),
+            html.Span(f"{i18n.t('chart.definition')} : {definition}")]),
     ])
 
 
-def message_seuil(texte: str = "Moins de 30 victimes sur ce périmètre : taux non affiché"):
+def message_seuil(texte: str | None = None):
+    texte = texte if texte is not None else i18n.t("chart.seuil")
     return html.Div(className="seuil-msg", children=[
         DashIconify(icon="tabler:info-circle", width=18), html.Span(texte, style={
             "marginLeft": 8})])

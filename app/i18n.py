@@ -189,6 +189,23 @@ TR = {
     "sim.moyenne": {"fr": "Moyenne", "en": "Average"},
     "sim.profil_choisi": {"fr": "Profil choisi", "en": "Chosen profile"},
     "sim.ans": {"fr": "ans", "en": "yrs"},
+    # Carte graphique (cadre, toutes scènes)
+    "chart.actions": {"fr": "Actions du graphique", "en": "Chart actions"},
+    "chart.zoom": {"fr": "Agrandir", "en": "Enlarge"},
+    "chart.png": {"fr": "Télécharger en PNG", "en": "Download as PNG"},
+    "chart.data": {"fr": "Voir les données", "en": "View data"},
+    "chart.source": {"fr": "Source", "en": "Source"},
+    "chart.definition": {"fr": "Définition", "en": "Definition"},
+    "chart.seuil": {"fr": "Moins de 30 victimes sur ce périmètre : taux non affiché",
+                    "en": "Fewer than 30 casualties here: rate not shown"},
+    # Modale « Données du graphique » (cadre, toutes scènes)
+    "modal.data_titre": {"fr": "Données du graphique", "en": "Chart data"},
+    "modal.non_tabulable": {"fr": "Données non tabulables pour ce graphique.",
+                            "en": "Data not tabulable for this chart."},
+    "modal.lignes_a": {"fr": "premières lignes affichées.", "en": "first rows shown."},
+    "modal.serie": {"fr": "Série", "en": "Series"},
+    "modal.categorie": {"fr": "Catégorie", "en": "Category"},
+    "modal.valeur": {"fr": "Valeur", "en": "Value"},
     "sim.jauge_note": {
         "fr": "Risque relatif : probabilité du profil / part moyenne de blessés graves parmi "
               "les usagers impliqués (×1), échelle logarithmique.",

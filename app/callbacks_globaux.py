@@ -10,6 +10,7 @@ from __future__ import annotations
 import dash_mantine_components as dmc
 from dash import ALL, MATCH, Input, Output, State, clientside_callback, ctx, dcc, html, no_update
 
+from app import i18n
 from app.components.chart_card import GRAPH_CONFIG
 from app.components.format import fmt_number
 
@@ -22,7 +23,7 @@ def modales() -> html.Div:
             dcc.Graph(id="modal-graph", config=GRAPH_CONFIG, style={"height": "70vh"}),
             html.Div(id="modal-echart", style={"height": "70vh", "display": "none"}),
             dcc.Store(id="modal-echart-data"), dcc.Store(id="modal-echart-sink")]),
-        dmc.Modal(id="modal-data", size="lg", centered=True, title="Données du graphique",
+        dmc.Modal(id="modal-data", size="lg", centered=True, title=i18n.t("modal.data_titre"),
                   children=html.Div(id="modal-data-body")),
     ])
 
@@ -106,12 +107,13 @@ def register(app) -> None:
             return no_update, no_update
         lignes = charge["tableau"] if charge else table_depuis_figure(fig)
         if not lignes:
-            return True, html.P("Données non tabulables pour ce graphique.", className="body")
+            return True, html.P(i18n.t("modal.non_tabulable"), className="body")
         avec_serie = any(ligne[0] for ligne in lignes)
-        tete = (["Série"] if avec_serie else []) + ["Catégorie", "Valeur"]
+        tete = ([i18n.t("modal.serie")] if avec_serie else []) + [
+            i18n.t("modal.categorie"), i18n.t("modal.valeur")]
         corps = [([str(s)] if avec_serie else []) + [str(c), _valeur(v)]
                  for s, c, v in lignes]
-        note = (html.P(f"{MAX_LIGNES} premières lignes affichées.", className="caption")
+        note = (html.P(f"{MAX_LIGNES} {i18n.t('modal.lignes_a')}", className="caption")
                 if len(lignes) >= MAX_LIGNES else None)
         return True, html.Div([note, dmc.ScrollArea(h=420, children=dmc.Table(
             striped=True, highlightOnHover=True, data={"head": tete, "body": corps}))])

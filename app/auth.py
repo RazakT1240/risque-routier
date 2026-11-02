@@ -145,11 +145,17 @@ def _on(lang: str, cible: str) -> str:
 
 
 def register(server) -> None:
-    """Branche la garde d'accès et les routes /login et /logout sur le serveur Flask."""
+    """Branche la garde d'accès et les routes /login et /logout sur le serveur Flask.
+
+    `APP_AUTH=0` désactive la garde (QA automatisée, développement) : la page reste
+    accessible mais /login et /logout restent définis."""
     server.secret_key = SECRET
+    garde_active = os.getenv("APP_AUTH", "1") != "0"
 
     @server.before_request
     def _garde():
+        if not garde_active:
+            return None
         if session.get("auth"):
             return None
         chemin = request.path
@@ -162,7 +168,8 @@ def register(server) -> None:
     def login():
         lang = _langue()
         suivant = request.args.get("next") or "/"
-        if not suivant.startswith("/"):
+        # Anti-redirection ouverte : uniquement un chemin interne (pas //, pas de schéma).
+        if not suivant.startswith("/") or suivant.startswith("//") or "://" in suivant:
             suivant = "/"
         if request.method == "POST":
             u = (request.form.get("utilisateur") or "").strip()

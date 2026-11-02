@@ -82,7 +82,7 @@ def bande_usagers(titre: str, sous_titre: str, items: list[tuple[str, str, str, 
             html.H2(titre, className="h2"),
             html.Div(sous_titre, className="caption", style={"marginTop": 4})])]),
         html.Div(className="usagers-grille", children=cartes),
-        html.Div(className="chart-foot caption", children=f"Source : {source}"),
+        html.Div(className="chart-foot caption", children=f"{i18n.t('chart.source')} : {source}"),
     ])
 
 

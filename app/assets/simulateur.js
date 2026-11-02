@@ -105,14 +105,16 @@ window.dash_clientside = Object.assign({}, window.dash_clientside, {
         badge, badgeCls
       ];
     },
-    vehicule: function (type) {
+    vehicule: function (type, m) {
       var fichiers = {
         "Piéton": "pieton", "Vélo": "velo", "EDP": "edp", "2RM": "moto",
         "Voiture": "voiture", "Utilitaire": "utilitaire", "Poids lourd": "camion",
         "Bus, car, tram": "bus", "Autre": "autre"
       };
       var f = fichiers[type] || "autre";
-      return ["/assets/vehicules/" + f + ".svg", "Illustration : " + (type || "usager")];
+      var alt = (m && m.lang === "en") ? "Illustration of the selected road-user profile"
+        : "Illustration du profil d'usager sélectionné";
+      return ["/assets/vehicules/" + f + ".svg", alt];
     },
     age: function (ageIdx, m) {
       if (!m) { return window.dash_clientside.no_update; }

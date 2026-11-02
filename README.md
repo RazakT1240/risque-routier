@@ -37,6 +37,7 @@ Le tableau de bord est protégé par une page de connexion. Identifiants de dém
 (affichés sur la page, projet portfolio) : **`actuaire`** / **`risque2026`**.
 Surchargeables par variables d'environnement avant le lancement :
 `APP_UTILISATEUR`, `APP_MOTDEPASSE`, et `APP_SECRET` (clé de signature du cookie de session).
+`APP_AUTH=0` désactive la garde (QA automatisée, développement).
 Langue de l'interface : bascule **FR / EN** en haut à droite (connexion et tableau de bord).
 
 ## Vérifications

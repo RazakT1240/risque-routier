@@ -444,6 +444,13 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible,input:focus-visibl
 .btn-sm{height:30px;padding:0 10px;font-size:12px;gap:6px}
 .mantine-Popover-dropdown{background:var(--bg-surface);border:1px solid var(--border)}
 @media (max-width:767px){.resume-terr{max-width:110px}.filtres-resume{max-width:230px;height:34px;padding:0 10px}}
+/* Très petits écrans : l'en-tête tient sans débordement (bascule langue + déconnexion) */
+@media (max-width:479px){
+  .header-inner{padding:0 8px;gap:8px}
+  .header-inner .mantine-Group-root{gap:6px!important}
+  .filtres-resume{max-width:142px}
+  .resume-terr{max-width:58px}
+}
 
 /* Focus clavier sur la carte vedette : double anneau, distinct du liseré ambre */
 .kpi-vedette.kpi-flip:focus-visible .kpi-face{box-shadow:0 0 0 2px var(--bg-page),0 0 0 4px var(--focus-ring)}

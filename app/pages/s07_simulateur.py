@@ -203,7 +203,7 @@ clientside_callback(
 clientside_callback(
     ClientsideFunction(namespace="simulateur", function_name="vehicule"),
     Output("sim-vehicule", "src"), Output("sim-vehicule", "alt"),
-    Input("sim-type", "value"))
+    Input("sim-type", "value"), State("sim-modele", "data"))
 
 clientside_callback(
     ClientsideFunction(namespace="simulateur", function_name="age"),
