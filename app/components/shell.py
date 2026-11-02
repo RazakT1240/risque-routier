@@ -6,6 +6,7 @@ import dash_mantine_components as dmc
 from dash import html
 from dash_iconify import DashIconify
 
+from app import i18n
 from app.scenes import SCENES
 
 PERIODE_CUMUL = "cumul"
@@ -31,37 +32,38 @@ def filtres(annees: list[int], departements: list[dict], annee_defaut: int) -> d
         **{"aria-label": "Période"})
     territoire = dmc.Select(
         id="filtre-territoire", searchable=True, allowDeselect=False, value=TERRITOIRE_FRANCE,
-        nothingFoundMessage="Aucun département", placeholder="Rechercher un département…",
+        nothingFoundMessage=i18n.t("filtres.aucun_dep"),
+        placeholder=i18n.t("filtres.chercher_dep"),
         comboboxProps={"withinPortal": False}, maxDropdownHeight=260,
         leftSection=DashIconify(icon="tabler:search", width=16),
-        data=[{"value": TERRITOIRE_FRANCE, "label": "France métropolitaine"}]
+        data=[{"value": TERRITOIRE_FRANCE, "label": i18n.t("filtres.france")}]
         + [{"value": d["dep"], "label": f"{d['dep']} · {d['nom']}"} for d in departements],
-        **{"aria-label": "Territoire"})
+        **{"aria-label": i18n.t("filtres.territoire")})
     panneau = html.Div(className="panneau-filtres", children=[
         html.Div(className="panneau-section", children=[
             html.Div(className="panneau-titre", children=[
-                DashIconify(icon="tabler:calendar", width=14), html.Span("Période")]),
+                DashIconify(icon="tabler:calendar", width=14),
+                html.Span(i18n.t("filtres.periode"))]),
             periode,
-            html.Div("Les courbes d'évolution montrent toujours les 7 années.",
-                     className="caption", style={"marginTop": 6}),
+            html.Div(i18n.t("filtres.note_annees"), className="caption", style={"marginTop": 6}),
         ]),
         html.Div(className="panneau-section", children=[
             html.Div(className="panneau-titre", children=[
-                DashIconify(icon="tabler:map-2", width=14), html.Span("Territoire")]),
+                DashIconify(icon="tabler:map-2", width=14),
+                html.Span(i18n.t("filtres.territoire"))]),
             territoire,
             dmc.Group(gap=6, mt=8, children=[
-                html.Button("France métropolitaine", id="filtre-france", n_clicks=0,
+                html.Button(i18n.t("filtres.france"), id="filtre-france", n_clicks=0,
                             className="chip-raccourci"),
-                html.Button("Département le plus touché", id="filtre-pire", n_clicks=0,
+                html.Button(i18n.t("filtres.pire"), id="filtre-pire", n_clicks=0,
                             className="chip-raccourci"),
             ]),
         ]),
         html.Div(className="panneau-pied", children=[
             html.Button([DashIconify(icon="tabler:refresh", width=14),
-                         html.Span("Réinitialiser")], id="filtre-reset", n_clicks=0,
+                         html.Span(i18n.t("filtres.reset"))], id="filtre-reset", n_clicks=0,
                         className="btn btn-precedent btn-sm"),
-            html.Span("Les filtres s'appliquent à toutes les scènes et à l'adresse de la page.",
-                      className="caption"),
+            html.Span(i18n.t("filtres.pied"), className="caption"),
         ]),
     ])
     return dmc.Popover(
@@ -70,7 +72,7 @@ def filtres(annees: list[int], departements: list[dict], annee_defaut: int) -> d
         children=[
             dmc.PopoverTarget(html.Button(
                 id="filtres-resume", className="filtres-resume", n_clicks=0,
-                **{"aria-label": "Ouvrir les filtres"},
+                **{"aria-label": i18n.t("filtres.ouvrir")},
                 children=[
                     DashIconify(icon="tabler:adjustments-horizontal", width=16,
                                 className="t-accent"),
@@ -90,25 +92,29 @@ def header(annees, departements, annee_defaut) -> dmc.AppShellHeader:
         html.Div(className="header-inner", children=[
             dmc.Group(gap=12, wrap="nowrap", children=[
                 dmc.Burger(id="burger", size="sm", hiddenFrom="sm",
-                           **{"aria-label": "Ouvrir la navigation"}),
+                           **{"aria-label": i18n.t("header.menu")}),
                 html.Div("R", className="monogramme", **{"aria-hidden": "true"}),
                 html.Div(className="brand-text", children=[
                     html.Div("Risque routier", className="brand-title"),
-                    html.Div("Fréquence · Gravité · Coût", className="label",
+                    html.Div(i18n.t("brand.sub"), className="label",
                              style={"fontSize": 10, "lineHeight": "12px"}),
                 ]),
             ]),
             html.Div(id="scene-compteur", className="caption header-centre"),
-            dmc.Group(gap=16, wrap="nowrap", children=[
+            dmc.Group(gap=12, wrap="nowrap", children=[
                 html.Div(filtres(annees, departements, annee_defaut), className="header-filtres"),
+                dmc.SegmentedControl(
+                    id="langue-toggle", size="xs", value=i18n.langue(),
+                    data=[{"value": "fr", "label": "FR"}, {"value": "en", "label": "EN"}],
+                    className="langue-toggle", **{"aria-label": i18n.t("header.langue")}),
                 dmc.ColorSchemeToggle(
                     id="theme-toggle", variant="default", size="lg",
                     lightIcon=DashIconify(icon="tabler:moon", width=18),
                     darkIcon=DashIconify(icon="tabler:sun", width=18),
-                    **{"aria-label": "Basculer le thème clair / sombre"}),
+                    **{"aria-label": i18n.t("header.theme")}),
                 html.A(DashIconify(icon="tabler:logout", width=18), href="/logout",
-                       className="header-logout", title="Se déconnecter",
-                       **{"aria-label": "Se déconnecter"}),
+                       className="header-logout", title=i18n.t("header.logout"),
+                       **{"aria-label": i18n.t("header.logout")}),
             ]),
         ]),
         html.Div(className="progress-track", children=html.Div(
@@ -119,24 +125,26 @@ def header(annees, departements, annee_defaut) -> dmc.AppShellHeader:
 def navbar() -> dmc.AppShellNavbar:
     return dmc.AppShellNavbar(className="app-navbar", p="md", children=dmc.Stack(
         gap=4, h="100%", children=[
-        html.Div("Challenge Dataviz · Institut des Actuaires", className="nav-badge"),
+        html.Div(i18n.t("nav.badge"), className="nav-badge"),
         html.Div(style={"height": 12}),
         *[dmc.NavLink(
             href=s["path"], active="exact", className="nav-link",
-            **{"aria-label": f"Scène {s['num']} : {s['nom']}"},
-            label=html.Span(s["nom"]),
+            **{"aria-label": f"{i18n.t('nav.scene_aria')} {s['num']} : "
+                             f"{i18n.nom_scene(s['path'])}"},
+            label=html.Span(i18n.nom_scene(s["path"])),
             leftSection=dmc.Group(gap=8, wrap="nowrap", children=[
                 html.Span(f"{s['num']:02d}", className="nav-num"),
                 DashIconify(icon=s["icon"], width=18)]),
         ) for s in SCENES],
         html.Div(style={"flex": 1}),
-        html.Button(id="nav-replier", className="nav-replier", n_clicks=0, title="Replier le menu",
-                    **{"aria-label": "Replier ou déplier le menu", "aria-expanded": "true"},
+        html.Button(id="nav-replier", className="nav-replier", n_clicks=0,
+                    title=i18n.t("nav.replier"),
+                    **{"aria-label": i18n.t("nav.replier_aria"), "aria-expanded": "true"},
                     children=[DashIconify(icon="tabler:layout-sidebar-left-collapse", width=18,
                                           className="ico-replier"),
                               DashIconify(icon="tabler:layout-sidebar-left-expand", width=18,
                                           className="ico-deplier"),
-                              html.Span("Replier le menu", className="nav-replier-texte")]),
+                              html.Span(i18n.t("nav.replier"), className="nav-replier-texte")]),
     ]))
 
 
@@ -160,7 +168,7 @@ def register(app) -> None:
                   Input("filtre-periode", "value"), Input("filtre-territoire", "value"))
     def resume_filtres(periode, dep):
         return (da.libelle_periode(periode),
-                "France métropolitaine" if dep in (None, TERRITOIRE_FRANCE)
+                i18n.t("filtres.france") if dep in (None, TERRITOIRE_FRANCE)
                 else da.libelle_territoire(dep))
 
     @app.callback(Output("filtre-territoire", "value", allow_duplicate=True),

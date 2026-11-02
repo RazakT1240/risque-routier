@@ -280,6 +280,8 @@ a:focus-visible,button:focus-visible,[tabindex]:focus-visible,input:focus-visibl
   color:var(--text-secondary);text-decoration:none;transition:background-color .15s,color .15s}
 .header-logout:hover{background:var(--bg-subtle);color:var(--text-primary)}
 .header-logout:focus-visible{outline:2px solid var(--focus-ring);outline-offset:2px}
+/* Bascule de langue (en-tête) */
+.langue-toggle{font-variant-numeric:tabular-nums}
 
 /* Méthode et données (scène 08) */
 .liste-methode{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px}

@@ -13,9 +13,24 @@ from dash import ClientsideFunction, Input, Output, State, clientside_callback, 
 from dash_iconify import DashIconify
 
 from app import data_access as da
+from app import i18n
 from app.components.blocks import insight, scene_header, scene_layout, scene_nav
 from app.components.format import fmt_number, fmt_pct
 from app.scenes import voisines
+
+
+def _note_modele(m) -> list[str]:
+    n = fmt_number(m["n_obs"])
+    if i18n.langue() == "en":
+        return [f"Statistical estimate over {da.PREMIERE_ANNEE}–{da.DERNIERE_ANNEE}, not an "
+                "individual prediction. ",
+                f"Model: logistic regression on {n} involved users (Metropolitan France); "
+                "\"rain\" = light rain (0.2 to 5 mm) on the day in the department; reference: "
+                "observed share of seriously injured among involved users."]
+    return ["Estimation statistique sur 2019–2025, pas une prédiction individuelle. ",
+            f"Modèle : régression logistique sur {n} usagers impliqués (France métropolitaine) ; "
+            "« pluie » = pluie faible (0,2 à 5 mm) du jour dans le département ; référence : part "
+            "observée de blessés graves parmi les usagers impliqués."]
 
 dash.register_page(__name__, path="/simulateur", name="Simulateur", order=7,
                    title="Simulateur · Risque routier")
@@ -37,25 +52,37 @@ def titre():
     types = {k: math.exp(v["coef"]) for k, v in m["coefs"]["type_usager"].items()}
     lieu = _or("agg_lib", "Hors agglomération") or 1
     contexte = max(_or("nuit", "Oui") or 1, _or("meteo_cat", "pluie faible") or 1)
-    if max(max(types.values()), lieu) > contexte:
-        return ("Le mode de déplacement et le lieu", "pèsent plus que la nuit ou la pluie.")
-    return ("Les conditions de circulation", "pèsent plus que le profil de l'usager.")
+    mode = max(max(types.values()), lieu) > contexte
+    if i18n.langue() == "en":
+        return (("The mode of travel and the place", "weigh more than night or rain.") if mode
+                else ("Driving conditions", "weigh more than the user's profile."))
+    return (("Le mode de déplacement et le lieu", "pèsent plus que la nuit ou la pluie.") if mode
+            else ("Les conditions de circulation", "pèsent plus que le profil de l'usager."))
 
 
 def chapeau():
     m = _modele()
+    pct = fmt_pct(m["taux_observe"] * 100, 0)
+    if i18n.langue() == "en":
+        return (f"Among road users involved in an injury crash between {da.PREMIERE_ANNEE} and "
+                f"{da.DERNIERE_ANNEE}, {pct} were killed or hospitalised. Build a profile to see "
+                "how this risk changes.")
     return (f"Parmi les usagers impliqués dans un accident corporel entre {da.PREMIERE_ANNEE} et "
-            f"{da.DERNIERE_ANNEE}, {fmt_pct(m['taux_observe'] * 100, 0)} ont été tués ou "
-            "hospitalisés. Composez un profil pour voir comment ce risque change.")
+            f"{da.DERNIERE_ANNEE}, {pct} ont été tués ou hospitalisés. Composez un profil pour "
+            "voir comment ce risque change.")
 
 
 def et_alors():
-    hors = _or("agg_lib", "Hors agglomération")
-    nuit = _or("nuit", "Oui")
-    return (f"À profil égal, la cote d'une blessure grave est multipliée par {fmt_number(hors, 1)} "
-            f"hors agglomération et par {fmt_number(nuit, 1)} la nuit (rapports de cotes du "
-            "modèle) : des variables d'usage, observables par la télématique, qui complètent les "
-            "critères tarifaires classiques.")
+    hors = fmt_number(_or("agg_lib", "Hors agglomération"), 1)
+    nuit = fmt_number(_or("nuit", "Oui"), 1)
+    if i18n.langue() == "en":
+        return (f"All else equal, the odds of a serious injury are multiplied by {hors} outside "
+                f"built-up areas and by {nuit} at night (model odds ratios): usage variables, "
+                "observable via telematics, that complement classic pricing criteria.")
+    return (f"À profil égal, la cote d'une blessure grave est multipliée par {hors} hors "
+            f"agglomération et par {nuit} la nuit (rapports de cotes du modèle) : des variables "
+            "d'usage, observables par la télématique, qui complètent les critères tarifaires "
+            "classiques.")
 
 
 def _jauge():
@@ -73,8 +100,7 @@ def _jauge():
         ]),
         html.Div(className="jauge-ticks", children=ticks),
         html.Div(className="caption", style={"marginTop": 22},
-                 children="Risque relatif : probabilité du profil / part moyenne de blessés "
-                          "graves parmi les usagers impliqués (×1), échelle logarithmique."),
+                 children=i18n.t("sim.jauge_note")),
     ])
 
 
@@ -91,74 +117,71 @@ def layout(**_):
     classes = n["classe_age"]
     debut, accent = titre()
     profil = html.Section(className="carte", children=dmc.Stack(gap=20, children=[
-        html.H2("Le profil", className="h2"),
-        controle("Type d'usager", "tabler:user", dmc.SegmentedControl(
-            id="sim-type", data=n["type_usager"], value="2RM", orientation="vertical",
-            fullWidth=True, **{"aria-label": "Type d'usager"})),
-        controle("Âge", "tabler:calendar-user", html.Div([
+        html.H2(i18n.t("sim.profil"), className="h2"),
+        controle(i18n.t("sim.type"), "tabler:user", dmc.SegmentedControl(
+            id="sim-type", data=i18n.opt("type_usager", n["type_usager"]), value="2RM",
+            orientation="vertical", fullWidth=True, **{"aria-label": i18n.t("sim.type")})),
+        controle(i18n.t("sim.age"), "tabler:calendar-user", html.Div([
             html.Div(id="sim-age-lib", className="t-primary", style={"fontWeight": 600}),
             dmc.Slider(id="sim-age", min=0, max=len(classes) - 1, step=1,
                        value=classes.index("20-24"), label=None, mt=8, mb=24,
                        marks=[{"value": i, "label": c.split("-")[0]}
                               for i, c in enumerate(classes) if i % 4 == 0],
-                       **{"aria-label": "Classe d'âge"}),
+                       **{"aria-label": i18n.t("sim.age")}),
         ])),
-        controle("Sexe", "tabler:gender-bigender", dmc.SegmentedControl(
-            id="sim-sexe", data=n["sexe_lib"], value="Homme", fullWidth=True,
-            **{"aria-label": "Sexe"})),
+        controle(i18n.t("sim.sexe"), "tabler:gender-bigender", dmc.SegmentedControl(
+            id="sim-sexe", data=i18n.opt("sexe", n["sexe_lib"]), value="Homme", fullWidth=True,
+            **{"aria-label": i18n.t("sim.sexe")})),
         dmc.Group(gap=24, children=[
-            dmc.Switch(id="sim-nuit", label="La nuit", checked=True),
-            dmc.Switch(id="sim-pluie", label="Sous la pluie", checked=True),
-            dmc.Switch(id="sim-hors", label="Hors agglomération", checked=True),
+            dmc.Switch(id="sim-nuit", label=i18n.t("sim.nuit"), checked=True),
+            dmc.Switch(id="sim-pluie", label=i18n.t("sim.pluie"), checked=True),
+            dmc.Switch(id="sim-hors", label=i18n.t("sim.hors"), checked=True),
         ]),
-        controle("Type de route", "tabler:road", dmc.Select(
-            id="sim-route", data=n["catr_groupe"], value="Départementale", allowDeselect=False,
-            comboboxProps={"withinPortal": True}, **{"aria-label": "Type de route"})),
+        controle(i18n.t("sim.route"), "tabler:road", dmc.Select(
+            id="sim-route", data=i18n.opt("route", n["catr_groupe"]), value="Départementale",
+            allowDeselect=False, comboboxProps={"withinPortal": True},
+            **{"aria-label": i18n.t("sim.route")})),
     ]))
     scene = html.Div(className="sim-scene", children=[
         html.Div(className="sim-stage", children=html.Img(
             id="sim-vehicule", className="sim-vehicule", src="/assets/vehicules/moto.svg",
-            alt="Illustration du profil d'usager sélectionné")),
+            alt=i18n.t("sim.vehicule_alt"))),
         html.Div(id="sim-badge", className="sim-badge sim-badge-neutre", children="—"),
     ])
     resultat = html.Section(className="carte carte-resultat", **{"aria-live": "polite"},
                             children=dmc.Stack(gap=20, children=[
-            html.H2("Le risque estimé", className="h2"),
+            html.H2(i18n.t("sim.resultat"), className="h2"),
             scene,
             dmc.Group(gap=40, align="flex-end", children=[
-                html.Div([html.Div("Risque relatif", className="label"),
+                html.Div([html.Div(i18n.t("sim.risque_relatif"), className="label"),
                           html.Div(id="sim-ratio", className="display num t-primary")]),
-                html.Div([html.Div("Probabilité de blessure grave si impliqué", className="label"),
+                html.Div([html.Div(i18n.t("sim.proba"), className="label"),
                           html.Div(id="sim-proba", className="kpi-value")]),
             ]),
             _jauge(),
             html.P(id="sim-phrase", className="body t-primary recit", style={"margin": 0}),
-            html.Div(dmc.Button("Comparer à la moyenne", id="sim-comparer", n_clicks=0,
+            html.Div(dmc.Button(i18n.t("sim.comparer"), id="sim-comparer", n_clicks=0,
                                 variant="light",
                                 leftSection=DashIconify(icon="tabler:arrows-left-right",
                                                         width=16))),
             html.Div(id="sim-comparaison", style={"display": "none"}, children=[
                 html.Div(className="comp-ligne", children=[
-                    html.Span("Moyenne", className="comp-lib"),
+                    html.Span(i18n.t("sim.moyenne"), className="comp-lib"),
                     html.Div(className="comp-piste", children=html.Div(
                         id="sim-comp-moy", className="comp-barre comp-neutre")),
                     html.Span(id="sim-comp-moy-txt", className="comp-val")]),
                 html.Div(className="comp-ligne", children=[
-                    html.Span("Profil choisi", className="comp-lib"),
+                    html.Span(i18n.t("sim.profil_choisi"), className="comp-lib"),
                     html.Div(className="comp-piste", children=html.Div(
                         id="sim-comp-profil", className="comp-barre comp-alerte")),
                     html.Span(id="sim-comp-profil-txt", className="comp-val")]),
             ]),
-            html.Div(className="caption", children=[
-                "Estimation statistique sur 2019–2025, pas une prédiction individuelle. ",
-                f"Modèle : régression logistique sur {fmt_number(m['n_obs'])} usagers impliqués "
-                "(France métropolitaine) ; « pluie » = pluie faible (0,2 à 5 mm) du jour dans le "
-                "département ; référence : part observée de blessés graves parmi les usagers "
-                "impliqués."]),
+            html.Div(className="caption", children=_note_modele(m)),
         ]))
     return scene_layout(
-        dcc.Store(id="sim-modele", data={**m, "jauge": [GRADUATIONS[0], GRADUATIONS[-1]]}),
-        scene_header(NUM, "Simulateur", debut, accent, chapeau()),
+        dcc.Store(id="sim-modele",
+                  data={**m, "jauge": [GRADUATIONS[0], GRADUATIONS[-1]], "lang": i18n.langue()}),
+        scene_header(NUM, i18n.nom_scene("/simulateur"), debut, accent, chapeau()),
         html.Div(className="grille-simu", children=[profil, resultat]),
         insight(et_alors()),
         scene_nav(*voisines(NUM)),

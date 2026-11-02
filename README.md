@@ -98,6 +98,12 @@ reports/    inventaire, contrôles G4, décisions, rapports de phase, captures, 
 - 2020 atypique (confinements) ; usagers en fuite sans âge ni sexe depuis 2021 ; populations INSEE
   2024–2025 provisoires.
 - Un taux calculé sur moins de 30 victimes n'est jamais affiché.
+- **Bilingue FR/EN** : le cadre applicatif (en-tête, navigation, filtres, assistant, boutons),
+  la page de connexion et le **simulateur** sont entièrement traduits. Les titres-messages
+  analytiques des scènes 02–06 sont générés depuis les données (G3) et restent en français :
+  leur version anglaise doit être validée par le propriétaire (un titre doit refléter les
+  données). L'assistant comprend les mots-clés français. Extension : ajouter les clés dans
+  `app/i18n.py` et brancher les textes de scène sur `i18n.t()` / une branche `i18n.langue()`.
 
 ## Captures
 

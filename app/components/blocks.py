@@ -7,6 +7,8 @@ import dash_mantine_components as dmc
 from dash import dcc, html
 from dash_iconify import DashIconify
 
+from app import i18n
+
 
 def scene_header(numero: int, nom: str, titre_debut: str, titre_accent: str = "",
                  chapeau: str = "") -> html.Header:
@@ -22,7 +24,7 @@ def scene_header(numero: int, nom: str, titre_debut: str, titre_accent: str = ""
 
 def insight(texte) -> html.Aside:
     return html.Aside(className="insight", children=[
-        html.Div("Et alors ?", className="label"), html.P(texte)])
+        html.Div(i18n.t("insight.label"), className="label"), html.P(texte)])
 
 
 def lien_bouton(texte: str, href: str, classe: str, icone_g: str | None = None,
@@ -85,16 +87,17 @@ def bande_usagers(titre: str, sous_titre: str, items: list[tuple[str, str, str, 
 
 
 def scene_nav(precedente: tuple[str, str] | None, suivante: tuple[str, str] | None):
-    """(libellé, href) par bouton ; un pont narratif (scenes.PONTS) précède le « suivant »."""
-    from app.scenes import PONTS
-    pont = PONTS.get(suivante[1]) if suivante else None
+    """(libellé, href) par bouton ; un pont narratif (i18n.pont) précède le « suivant »."""
+    pont = i18n.pont(suivante[1]) if suivante else None
     boutons = html.Div(className="scene-nav-row", children=[
-        lien_bouton(f"Scène précédente · {precedente[0]}", precedente[1], "btn-precedent",
+        lien_bouton(f"{i18n.t('nav.precedente')} · {i18n.nom_scene(precedente[1])}",
+                    precedente[1], "btn-precedent",
                     icone_g="tabler:arrow-left") if precedente else html.Span(),
-        lien_bouton(f"Scène suivante · {suivante[0]}", suivante[1], "btn-suivant",
+        lien_bouton(f"{i18n.t('nav.suivante')} · {i18n.nom_scene(suivante[1])}",
+                    suivante[1], "btn-suivant",
                     icone_d="tabler:arrow-right") if suivante else html.Span(),
     ])
-    return html.Nav(className="scene-nav", **{"aria-label": "Navigation entre scènes"}, children=[
+    return html.Nav(className="scene-nav", **{"aria-label": i18n.t("nav.aria")}, children=[
         html.P(pont, className="scene-pont") if pont else None, boutons])
 
 

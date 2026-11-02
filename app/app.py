@@ -21,7 +21,7 @@ import dash_mantine_components as dmc  # noqa: E402
 from dash import Dash, Input, Output, State, ctx, dcc, no_update  # noqa: E402
 
 import design.plotly_template  # noqa: E402,F401  (enregistre les templates)
-from app import auth, callbacks_globaux  # noqa: E402
+from app import auth, callbacks_globaux, i18n  # noqa: E402
 from app import data_access as da  # noqa: E402
 from app.components import assistant_ui, shell  # noqa: E402
 from app.scenes import PAR_CHEMIN, SCENES  # noqa: E402
@@ -42,18 +42,38 @@ app.index_string = app.index_string.replace("<html>", '<html lang="fr">', 1)
 ANNEES_VALIDES = {str(a) for a in da.annees(da.PERIODE_CUMUL)} | {da.PERIODE_CUMUL}
 DEPS_VALIDES = {d["dep"] for d in da.departements_metropole()} | {da.TERRITOIRE_FRANCE}
 
-app.layout = dmc.MantineProvider(theme=THEME, defaultColorScheme="light", children=[
-    dcc.Location(id="url", refresh=False),
-    dcc.Store(id="filtres", storage_type="session"),
-    *callbacks_globaux.stores(),
-    shell.app_shell(dash.page_container, da.annees(da.PERIODE_CUMUL),
-                    da.departements_metropole(), da.DERNIERE_ANNEE),
-    callbacks_globaux.modales(),
-    assistant_ui.widget(),
-])
+def serve_layout():
+    """Arbre complet reconstruit à chaque requête : permet la bascule de langue (cookie)
+    sans rechargement de module (l'en-tête, la navbar et les scènes relisent i18n.langue())."""
+    return dmc.MantineProvider(theme=THEME, defaultColorScheme="light", children=[
+        dcc.Location(id="url", refresh=False),
+        dcc.Store(id="filtres", storage_type="session"),
+        dcc.Store(id="langue-noop"),
+        *callbacks_globaux.stores(),
+        shell.app_shell(dash.page_container, da.annees(da.PERIODE_CUMUL),
+                        da.departements_metropole(), da.DERNIERE_ANNEE),
+        callbacks_globaux.modales(),
+        assistant_ui.widget(),
+    ])
+
+
+app.layout = serve_layout
 callbacks_globaux.register(app)
 shell.register(app)
 assistant_ui.register(app)
+
+# Bascule de langue : écrit le cookie et recharge la page (le serveur relit le cookie).
+app.clientside_callback(
+    """function(v){
+        var m = document.cookie.match(/(?:^|; )langue=([^;]+)/);
+        var cur = m ? m[1] : 'fr';
+        if (v && v !== cur) {
+            document.cookie = 'langue=' + v + ';path=/;max-age=31536000;samesite=lax';
+            window.location.reload();
+        }
+        return window.dash_clientside.no_update;
+    }""",
+    Output("langue-noop", "data"), Input("langue-toggle", "value"))
 
 
 @app.callback(
@@ -84,7 +104,8 @@ def synchroniser_filtres(search, periode, territoire, memo):
 def progression(path):
     scene = PAR_CHEMIN.get(path or "/", SCENES[0])
     return ({"width": f"{scene['num'] / len(SCENES) * 100:.1f}%"},
-            f"Scène {scene['num']} / {len(SCENES)} · {scene['nom']}")
+            f"{i18n.t('header.compteur')} {scene['num']} / {len(SCENES)} · "
+            f"{i18n.nom_scene(path or '/')}")
 
 
 if __name__ == "__main__":

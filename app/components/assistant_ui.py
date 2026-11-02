@@ -12,6 +12,7 @@ from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 from dash_iconify import DashIconify
 
 from app import assistant as A
+from app import i18n
 from app.components.chart_card import GRAPH_CONFIG
 
 
@@ -19,9 +20,9 @@ def declencheur() -> html.Button:
     """Bouton d'action flottant (en bas à droite) qui ouvre le tiroir."""
     return html.Button(
         id="assistant-ouvrir", className="assistant-fab", n_clicks=0,
-        **{"aria-label": "Ouvrir l'assistant de questions sur les données"},
+        **{"aria-label": i18n.t("assist.ouvrir_aria")},
         children=[DashIconify(icon="tabler:message-chatbot", width=22),
-                  html.Span("Poser une question", className="assistant-fab-texte")])
+                  html.Span(i18n.t("assist.ouvrir"), className="assistant-fab-texte")])
 
 
 def tiroir() -> dmc.Drawer:
@@ -31,22 +32,20 @@ def tiroir() -> dmc.Drawer:
         for i, q in enumerate(A.EXEMPLES)])
     return dmc.Drawer(
         id="assistant-drawer", position="right", size=440, padding="lg", zIndex=400,
-        withCloseButton=True, title="Assistant · vos questions sur les données",
+        withCloseButton=True, title=i18n.t("assist.titre"),
         children=html.Div(className="assistant-corps", children=[
-            html.P("Posez une question sur les chiffres du tableau de bord. Les réponses sont "
-                   "calculées depuis les données (aucun chiffre n'est inventé).",
-                   className="caption assistant-intro"),
+            html.P(i18n.t("assist.intro"), className="caption assistant-intro"),
             dmc.Group(gap=8, wrap="nowrap", align="flex-end", children=[
                 dmc.TextInput(
                     id="assistant-q", className="assistant-champ",
-                    placeholder="Ex. : combien de tués en 2025 ?",
+                    placeholder=i18n.t("assist.placeholder"),
                     leftSection=DashIconify(icon="tabler:search", width=16),
-                    style={"flex": 1}, **{"aria-label": "Votre question"}),
+                    style={"flex": 1}, **{"aria-label": i18n.t("assist.q_aria")}),
                 html.Button(DashIconify(icon="tabler:arrow-right", width=18),
                             id="assistant-go", n_clicks=0, className="assistant-go",
-                            **{"aria-label": "Chercher la réponse"}),
+                            **{"aria-label": i18n.t("assist.chercher")}),
             ]),
-            html.Div("Exemples", className="assistant-sous-titre"),
+            html.Div(i18n.t("assist.exemples"), className="assistant-sous-titre"),
             exemples,
             html.Div(id="assistant-reponses", className="assistant-reponses"),
         ]))
@@ -61,8 +60,8 @@ def _carte_reponse(f: dict, scheme: str) -> html.Div:
         html.P(f["reponse"], className="assistant-fiche-rep"),
         graphe,
         html.Div(className="assistant-fiche-pied", children=[
-            html.Span(f"Source : {f['source']}", className="caption"),
-            html.A([html.Span(f"Voir « {f['scene_nom']} »"),
+            html.Span(f"{i18n.t('assist.source')} : {f['source']}", className="caption"),
+            html.A([html.Span(f"{i18n.t('assist.voir')} « {f['scene_nom']} »"),
                     DashIconify(icon="tabler:arrow-up-right", width=14)],
                    href=f["scene_path"], className="assistant-lien"),
         ]),
@@ -74,13 +73,10 @@ def _resultats(question: str, scheme: str) -> html.Div:
     if not fiches:
         return html.Div(className="assistant-vide", children=[
             DashIconify(icon="tabler:mood-empty", width=24, className="t-muted"),
-            html.P("Aucune réponse trouvée dans les données pour cette question. Essayez un des "
-                   "exemples, ou reformulez avec un mot-clé (tués, accidents, département, "
-                   "deux-roues, pluie…).", className="caption")])
+            html.P(i18n.t("assist.vide"), className="caption")])
+    cle = "assist.compteur_plus" if len(fiches) > 1 else "assist.compteur_une"
     return html.Div([
-        html.Div(f"{len(fiches)} réponse{'s' if len(fiches) > 1 else ''} trouvée"
-                 f"{'s' if len(fiches) > 1 else ''} dans les données",
-                 className="assistant-compteur"),
+        html.Div(f"{len(fiches)} {i18n.t(cle)}", className="assistant-compteur"),
         *[_carte_reponse(f, scheme) for f in fiches],
     ])
 
