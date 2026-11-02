@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import math
 
+from app import i18n
+
 NA = "—"
 MILLIERS = "\u00a0"     # espace insécable (l'espace fine U+202F est quasi invisible)
 INSECABLE = "\u00a0"
@@ -24,11 +26,17 @@ def _manquant(x) -> bool:
 
 
 def fmt_number(x, decimals: int = 0, signe: bool = False, milliers: str = MILLIERS) -> str:
-    """`milliers=INSECABLE` pour les très grands corps (l'espace fine y devient invisible)."""
+    """Format français par défaut ; anglais (virgule milliers, point décimal) si langue=en.
+    `milliers=INSECABLE` pour les très grands corps (l'espace fine y devient invisible)."""
     if _manquant(x):
         return NA
-    txt = f"{abs(x):,.{decimals}f}".replace(",", milliers).replace(".", ",")
-    if x < 0 and txt.strip("0," + MILLIERS + INSECABLE):
+    if i18n.langue() == "en":
+        txt = f"{abs(x):,.{decimals}f}"                 # 1,234.5
+        reste = txt.strip("0.,")
+    else:
+        txt = f"{abs(x):,.{decimals}f}".replace(",", milliers).replace(".", ",")
+        reste = txt.strip("0," + MILLIERS + INSECABLE)
+    if x < 0 and reste:
         return MOINS + txt
     if signe and x > 0:
         return "+" + txt
@@ -38,7 +46,9 @@ def fmt_number(x, decimals: int = 0, signe: bool = False, milliers: str = MILLIE
 def fmt_pct(x, decimals: int = 1, signe: bool = False) -> str:
     if _manquant(x):
         return NA
-    return f"{fmt_number(x, decimals, signe)}{INSECABLE}%"
+    # Anglais : pas d'espace avant « % » (12.4%) ; français : espace insécable (12,4 %).
+    sep = "" if i18n.langue() == "en" else INSECABLE
+    return f"{fmt_number(x, decimals, signe)}{sep}%"
 
 
 def fmt_ratio(x, decimals: int = 2) -> str:

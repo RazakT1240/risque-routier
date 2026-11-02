@@ -11,6 +11,7 @@ from dash import Input, Output, callback, html
 from app import data_access as da
 from app import echarts as E
 from app import figures as F
+from app import i18n
 from app.components.blocks import insight, scene_header, scene_layout, scene_nav
 from app.components.chart_card import chart_card, chip_filtre, echart_id, graph_id
 from app.components.format import fmt_number, fmt_pct, fmt_ratio
@@ -63,31 +64,62 @@ def _national():
     return pic, g, (pic["taux"] / femmes.iloc[0]) if len(femmes) else None
 
 
+# Personne-usager en anglais (pour l'encart « Et alors ? »), valeur de données -> libellé EN
+_VEH_EN = {"2RM": "motorcyclist", "Vélo": "cyclist", "Piéton": "pedestrian",
+           "EDP": "e-scooter rider", "Voiture": "car occupant", "Utilitaire": "van occupant",
+           "Poids lourd": "truck occupant", "Bus, car, tram": "bus passenger",
+           "Autre": "other-vehicle user"}
+
+
 def titre():
     pic, g, _ = _national()
     tete = type_en_tete(g)
-    if pic["sexe_lib"] == "Homme" and str(pic["classe_age"]) in JEUNES and tete == "2RM":
-        return ("Les jeunes hommes et les deux-roues", "sont les plus exposés aux blessures "
-                "graves.")
-    sexe = "hommes" if pic["sexe_lib"] == "Homme" else "femmes"
-    return (f"Les {sexe} de {str(pic['classe_age']).replace('-', '–')} ans",
+    en = i18n.langue() == "en"
+    classe = str(pic["classe_age"]).replace("-", "–")
+    homme = pic["sexe_lib"] == "Homme"
+    if homme and str(pic["classe_age"]) in JEUNES and tete == "2RM":
+        return (("Young men and powered two-wheelers", "are the most exposed to serious injury.")
+                if en else
+                ("Les jeunes hommes et les deux-roues", "sont les plus exposés aux blessures "
+                 "graves."))
+    if en:
+        return (f"{'Men' if homme else 'Women'} aged {classe}",
+                "are the most exposed to serious injury.")
+    return (f"Les {'hommes' if homme else 'femmes'} de {classe} ans",
             "sont les plus exposés aux blessures graves.")
 
 
 def chapeau():
     pic, g, ratio = _national()
+    classe = str(pic["classe_age"]).replace("-", "–")
+    homme = pic["sexe_lib"] == "Homme"
+    taux = fmt_number(pic["taux"], 0)
+    if i18n.langue() == "en":
+        plus = (f", {fmt_number(ratio, 1)} times the rate of women the same age)." if ratio
+                else ").")
+        return (f"Relative to population, serious injuries peak among "
+                f"{'men' if homme else 'women'} aged {classe} "
+                f"({taux} per 100,000 inhabitants per year" + plus)
+    plus = (f", {fmt_number(ratio, 1)} fois plus que les femmes du même âge)." if ratio
+            else ").")
     return (f"Rapportées à la population, les blessures graves culminent chez les "
-            f"{'hommes' if pic['sexe_lib'] == 'Homme' else 'femmes'} de "
-            f"{str(pic['classe_age']).replace('-', '–')} ans "
-            f"({fmt_number(pic['taux'], 0)} pour 100 000 habitants et par an"
-            + (f", {fmt_number(ratio, 1)} fois plus que les femmes du même âge)." if ratio
-               else ")."))
+            f"{'hommes' if homme else 'femmes'} de {classe} ans "
+            f"({taux} pour 100 000 habitants et par an" + plus)
 
 
 def et_alors():
     _, g, _ = _national()
     tete = type_en_tete(g)
     voiture = g.loc["Voiture", "gravite"] if "Voiture" in g.index else None
+    en = i18n.langue() == "en"
+    if en:
+        phrase = ""
+        if tete and voiture is not None:
+            phrase = (f" A {_VEH_EN.get(tete, tete)} is killed or hospitalised in "
+                      f"{fmt_pct(g.loc[tete, 'gravite'], 0)} of cases, versus "
+                      f"{fmt_pct(voiture, 0)} for a car occupant.")
+        return ("Age and vehicle type strongly shape injury severity: two variables that pricing "
+                "already knows how to observe." + phrase)
     phrase = ""
     if tete and voiture is not None:
         phrase = (f" Une victime {'en 2RM' if tete == '2RM' else tete.lower()} est tuée ou "
@@ -100,7 +132,7 @@ def et_alors():
 def layout(**_):
     debut, accent = titre()
     return scene_layout(
-        scene_header(NUM, "Qui", debut, accent, chapeau()),
+        scene_header(NUM, i18n.nom_scene("/qui"), debut, accent, chapeau()),
         html.Div(id="s04-kpis"),
         html.Div(className="grille-2", children=[
             chart_card("s04-age", "Victimes graves par âge et par sexe",

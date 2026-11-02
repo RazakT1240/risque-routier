@@ -121,11 +121,14 @@ reports/    inventaire, contrôles G4, décisions, rapports de phase, captures, 
   2024–2025 provisoires.
 - Un taux calculé sur moins de 30 victimes n'est jamais affiché.
 - **Bilingue FR/EN** : le cadre applicatif (en-tête, navigation, filtres, assistant, boutons),
-  la page de connexion et le **simulateur** sont entièrement traduits. Les titres-messages
-  analytiques des scènes 02–06 sont générés depuis les données (G3) et restent en français :
-  leur version anglaise doit être validée par le propriétaire (un titre doit refléter les
-  données). L'assistant comprend les mots-clés français. Extension : ajouter les clés dans
-  `app/i18n.py` et brancher les textes de scène sur `i18n.t()` / une branche `i18n.langue()`.
+  la page de connexion, le **simulateur** et la **colonne vertébrale narrative des scènes 02–06**
+  (titres-messages, chapeaux, encarts « Et alors ? ») sont traduits ; le format des nombres suit
+  la langue (`1,234.5` en anglais, `1 234,5` en français). Les titres restent **générés depuis
+  les données** dans les deux langues (G3 : les deux branches sont traduites, donc le titre ne
+  peut pas mentir). Restent en français : les libellés internes aux graphiques (titres de cartes,
+  étiquettes de KPI, axes), le corps des scènes 01 (accueil) et 08 (méthode), et les réponses de
+  l'assistant (corpus de données français). Extension : clés dans `app/i18n.py` + branche
+  `i18n.langue()`.
 
 ## Captures
 

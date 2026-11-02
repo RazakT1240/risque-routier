@@ -12,6 +12,7 @@ from dash import Input, Output, callback, ctx, html, no_update
 
 from app import data_access as da
 from app import figures as F
+from app import i18n
 from app.components.blocks import (
     bascule,
     bascule_id,
@@ -60,9 +61,12 @@ def _nuits_weekend(g: pd.DataFrame):
 
 def titre():
     t = territoires().dropna(subset=["taux_tues_million"])
-    ratio = t["taux_tues_million"].max() / t["taux_tues_million"].min()
+    ratio = fmt_number(t["taux_tues_million"].max() / t["taux_tues_million"].min(), 0)
+    if i18n.langue() == "en":
+        return ("Depending on the department, the risk of dying on the road",
+                f"varies from 1 to {ratio}.")
     return ("Selon le département, le risque de mourir sur la route",
-            f"varie de 1 à {fmt_number(ratio, 0)}.")
+            f"varie de 1 à {ratio}.")
 
 
 def titre_carte(col: str, quoi: str) -> str:
@@ -81,22 +85,33 @@ def titre_meteo() -> str:
 
 def chapeau():
     nuit, moy = _nuits_weekend(creneaux(da.PERIODE_CUMUL, da.TERRITOIRE_FRANCE))
-    m = da.modele("meteo")["effets"]
-    pluie = m["pluie faible"]["rr"]
-    phrase_pluie = ("la pluie, elle, n'augmente pas le nombre d'accidents" if pluie <= 1
-                    else "la pluie augmente le nombre d'accidents")
-    return (f"La nuit du week-end, {fmt_number(nuit, 1)} victimes sur 100 sont tuées, contre "
-            f"{fmt_number(moy, 1)} en moyenne ; {phrase_pluie}.")
+    pluie = da.modele("meteo")["effets"]["pluie faible"]["rr"]
+    nuit_s, moy_s = fmt_number(nuit, 1), fmt_number(moy, 1)
+    if i18n.langue() == "en":
+        pl = ("rain itself does not increase the number of crashes" if pluie <= 1
+              else "rain increases the number of crashes")
+        return (f"On weekend nights, {nuit_s} casualties in 100 are killed, versus {moy_s} on "
+                f"average; {pl}.")
+    pl = ("la pluie, elle, n'augmente pas le nombre d'accidents" if pluie <= 1
+          else "la pluie augmente le nombre d'accidents")
+    return (f"La nuit du week-end, {nuit_s} victimes sur 100 sont tuées, contre "
+            f"{moy_s} en moyenne ; {pl}.")
 
 
 def et_alors():
-    m = da.modele("meteo")["effets"]
-    pp = m["premiere_pluie"]
+    pp = da.modele("meteo")["effets"]["premiere_pluie"]
     sig = not (pp["ic_bas"] <= 1 <= pp["ic_haut"])
+    risque = sig and pp["rr"] > 1
+    if i18n.langue() == "en":
+        return ("Place and time strongly change severity: a usage-based offer gains from looking "
+                "at when and where people drive. "
+                + ("The first rain after a dry spell stands out as a risky moment." if risque else
+                   "The first rain after a dry spell has no significant effect on the number of "
+                   "crashes."))
     return ("Le lieu et l'heure font fortement varier la gravité : une offre « à l'usage » "
             "gagne à regarder quand et où l'on roule. "
             + ("La première pluie après une période sèche ressort comme un moment à risque."
-               if sig and pp["rr"] > 1 else
+               if risque else
                "La première pluie après une période sèche n'a pas d'effet significatif sur le "
                "nombre d'accidents."))
 
@@ -116,7 +131,7 @@ def legende(bornes, unite, avec_masques: bool):
 def layout(**_):
     debut, accent = titre()
     return scene_layout(
-        scene_header(NUM, "Où et quand", debut, accent, chapeau()),
+        scene_header(NUM, i18n.nom_scene("/ou-quand"), debut, accent, chapeau()),
         html.Div(id="s05-kpis"),
         chart_card("s05-carte", titre_carte("taux_tues_million", "tués"),
                    "Taux par habitant et par an, cumul 2019–2025 ; cliquez un département pour "

@@ -7,6 +7,7 @@ from dash import Input, Output, callback, html
 
 from app import data_access as da
 from app import figures as F
+from app import i18n
 from app.components.blocks import (
     bascule,
     bascule_id,
@@ -66,23 +67,34 @@ def _national():
 
 def titre():
     n = _national()
+    en = i18n.langue() == "en"
     if n["part_acc_en"] > 50 and n["part_tues_hors"] > 50:
-        return ("La ville fait les accidents,", "la campagne fait les morts.")
+        return (("Cities produce the crashes,", "the countryside produces the deaths.") if en
+                else ("La ville fait les accidents,", "la campagne fait les morts."))
     if n["let_hors"] > n["let_en"]:
-        return ("Hors agglomération, un accident est", "bien plus souvent mortel.")
-    return ("Accidents et tués", "se concentrent au même endroit.")
+        return (("Outside built-up areas, a crash is", "far more often fatal.") if en
+                else ("Hors agglomération, un accident est", "bien plus souvent mortel."))
+    return (("Crashes and deaths", "concentrate in the same place.") if en
+            else ("Accidents et tués", "se concentrent au même endroit."))
 
 
 def chapeau():
     n = _national()
-    return (f"Sur {da.LIBELLE_PERIODE_CUMUL}, {fmt_pct(n['part_acc_en'], 0)} des accidents "
-            f"corporels ont lieu en agglomération, mais {fmt_pct(n['part_tues_hors'], 0)} des "
-            "tués meurent hors agglomération.")
+    acc, hors = fmt_pct(n["part_acc_en"], 0), fmt_pct(n["part_tues_hors"], 0)
+    if i18n.langue() == "en":
+        return (f"Over {da.LIBELLE_PERIODE_CUMUL}, {acc} of injury crashes happen in built-up "
+                f"areas, but {hors} of those killed die outside them.")
+    return (f"Sur {da.LIBELLE_PERIODE_CUMUL}, {acc} des accidents corporels ont lieu en "
+            f"agglomération, mais {hors} des tués meurent hors agglomération.")
 
 
 def et_alors():
     n = _national()
     fois = fmt_number(n["let_hors"] / n["let_en"], 1)
+    if i18n.langue() == "en":
+        return (f"Over {da.LIBELLE_PERIODE_CUMUL}, outside built-up areas a casualty is {fois} "
+                "times more likely to be killed than in town: severity, not frequency, drives "
+                "the cost of rural claims. Zoning based on crash counts alone underestimates it.")
     return (f"Sur {da.LIBELLE_PERIODE_CUMUL}, hors agglomération, une victime est {fois} fois "
             "plus souvent tuée qu'en ville : "
             "c'est la sévérité, pas la fréquence, qui fait la gravité des sinistres ruraux. Un "
@@ -92,7 +104,7 @@ def et_alors():
 def layout(**_):
     debut, accent = titre()
     return scene_layout(
-        scene_header(NUM, "Le paradoxe", debut, accent, chapeau()),
+        scene_header(NUM, i18n.nom_scene("/paradoxe"), debut, accent, chapeau()),
         html.Div(id="s03-kpis"),
         html.Div(className="grille-2", children=[
             chart_card("s03-miroir", "Accidents et tués par type de route",

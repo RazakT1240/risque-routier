@@ -8,6 +8,7 @@ from dash import Output, callback, html
 from app import data_access as da
 from app import echarts as E
 from app import figures as F
+from app import i18n
 from app.components.blocks import insight, scene_header, scene_layout, scene_nav
 from app.components.chart_card import chart_card, chip_filtre, echart_id, graph_id
 from app.components.format import fmt_number, fmt_pct
@@ -39,42 +40,52 @@ def _national():
 
 
 def titre():
-    """Titre-message généré depuis les données nationales (G3)."""
+    """Titre-message généré depuis les données nationales (G3), FR et EN."""
     s = _national()["tues"]
     a0, a1 = da.PREMIERE_ANNEE, da.DERNIERE_ANNEE
     ecart = (s[a1] / s[a0] - 1) * 100
+    en = i18n.langue() == "en"
     if abs(ecart) < 3:
-        return ("Les tués ne baissent plus :", f"{a1} retrouve le niveau de {a0}.")
+        return (("Road deaths have stopped falling:", f"{a1} is back to the {a0} level.") if en
+                else ("Les tués ne baissent plus :", f"{a1} retrouve le niveau de {a0}."))
     if ecart < 0:
-        return ("Les tués reculent,", f"de {fmt_pct(-ecart, 0)} depuis {a0}.")
-    return ("Les tués augmentent,", f"de {fmt_pct(ecart, 0)} depuis {a0}.")
+        return (("Road deaths are falling,", f"by {fmt_pct(-ecart, 0)} since {a0}.") if en
+                else ("Les tués reculent,", f"de {fmt_pct(-ecart, 0)} depuis {a0}."))
+    return (("Road deaths are rising,", f"by {fmt_pct(ecart, 0)} since {a0}.") if en
+            else ("Les tués augmentent,", f"de {fmt_pct(ecart, 0)} depuis {a0}."))
 
 
 def chapeau():
     s = _national()
     a0, a1 = da.PREMIERE_ANNEE, da.DERNIERE_ANNEE
-    return (f"En {a1}, {fmt_number(s['tues'][a1])} personnes sont mortes sur les routes de "
-            f"métropole et {fmt_number(s['hospitalises'][a1])} ont été hospitalisées. Les "
-            f"victimes reculent de {fmt_pct((1 - s['victimes'][a1] / s['victimes'][a0]) * 100, 0)}"
-            f" depuis {a0}, pas les tués.")
+    tues, hosp = fmt_number(s["tues"][a1]), fmt_number(s["hospitalises"][a1])
+    recul = fmt_pct((1 - s["victimes"][a1] / s["victimes"][a0]) * 100, 0)
+    if i18n.langue() == "en":
+        return (f"In {a1}, {tues} people died on metropolitan roads and {hosp} were "
+                f"hospitalised. Casualties have fallen by {recul} since {a0} — but not deaths.")
+    return (f"En {a1}, {tues} personnes sont mortes sur les routes de métropole et {hosp} ont "
+            f"été hospitalisées. Les victimes reculent de {recul} depuis {a0}, pas les tués.")
 
 
 def et_alors():
     s = _national()
     a0, a1 = da.PREMIERE_ANNEE, da.DERNIERE_ANNEE
-    let0, let1 = letalite(s["tues"][a0], s["victimes"][a0]), letalite(s["tues"][a1],
-                                                                       s["victimes"][a1])
-    return (f"Moins de victimes mais autant de morts : la létalité passe de "
-            f"{fmt_number(let0, 1)} en {da.PREMIERE_ANNEE} à {fmt_number(let1, 1)} en "
-            f"{da.DERNIERE_ANNEE} tués pour 100 victimes. Pour un "
-            "assureur, la gravité moyenne d'un sinistre corporel augmente : la fréquence seule ne "
-            "suffit plus à suivre la sinistralité.")
+    let0 = fmt_number(letalite(s["tues"][a0], s["victimes"][a0]), 1)
+    let1 = fmt_number(letalite(s["tues"][a1], s["victimes"][a1]), 1)
+    if i18n.langue() == "en":
+        return (f"Fewer casualties but as many deaths: lethality rises from {let0} in {a0} to "
+                f"{let1} in {a1} deaths per 100 casualties. For an insurer, the average severity "
+                "of a bodily claim is increasing: frequency alone no longer tracks the risk.")
+    return (f"Moins de victimes mais autant de morts : la létalité passe de {let0} en {a0} à "
+            f"{let1} en {a1} tués pour 100 victimes. Pour un assureur, la gravité moyenne d'un "
+            "sinistre corporel augmente : la fréquence seule ne suffit plus à suivre la "
+            "sinistralité.")
 
 
 def layout(**_):
     debut, accent = titre()
     return scene_layout(
-        scene_header(NUM, "Vue d'ensemble", debut, accent, chapeau()),
+        scene_header(NUM, i18n.nom_scene("/vue-ensemble"), debut, accent, chapeau()),
         html.Div(id="s02-kpis"),
         html.Div(className="grille-2", children=[
             chart_card("s02-base100", "Depuis 2019, les tués décrochent des blessés",

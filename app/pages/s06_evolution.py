@@ -10,6 +10,7 @@ from dash import Output, callback, html
 
 from app import data_access as da
 from app import figures as F
+from app import i18n
 from app.components.blocks import insight, scene_header, scene_layout, scene_nav
 from app.components.chart_card import chart_card, chip_filtre, graph_id
 from app.components.format import delta, fmt_number, fmt_pct
@@ -53,6 +54,10 @@ NOMS = {"EDP": "en trottinette ou EDP", "Vélo": "à vélo", "Piéton": "piéton
         "2RM": "en deux-roues motorisé", "Voiture": "en voiture", "Utilitaire": "en utilitaire",
         "Poids lourd": "en poids lourd", "Bus, car, tram": "en transport collectif",
         "Autre": "des autres véhicules"}
+# Libellé EN placé devant « casualties » (« E-scooter and PMD casualties … »)
+NOMS_EN = {"EDP": "E-scooter and PMD", "Vélo": "Cyclist", "Piéton": "Pedestrian",
+           "2RM": "Powered two-wheeler", "Voiture": "Car", "Utilitaire": "Van",
+           "Poids lourd": "Truck", "Bus, car, tram": "Public-transport", "Autre": "Other-vehicle"}
 
 
 def plus_forte_hausse(v: pd.DataFrame, a1: int):
@@ -65,22 +70,32 @@ def titre():
     v = victimes_par_type(da.TERRITOIRE_FRANCE)
     a1 = da.DERNIERE_ANNEE
     top, ev = plus_forte_hausse(v, a1)
+    en = i18n.langue() == "en"
     if top is None:
-        return ("Les victimes par mode de déplacement", f"depuis {A0}.")
-    facteur = v[top][a1] / v[top][A0]
-    if facteur >= 2:
-        return (f"Les victimes {NOMS[top]}", f"ont été multipliées par {fmt_number(facteur, 0)} "
-                f"depuis {A0}.")
+        return (("Casualties by mode of travel", f"since {A0}.") if en
+                else ("Les victimes par mode de déplacement", f"depuis {A0}."))
+    facteur = fmt_number(v[top][a1] / v[top][A0], 0)
+    gros = v[top][a1] / v[top][A0] >= 2
+    if en:
+        return ((f"{NOMS_EN[top]} casualties", f"have multiplied by {facteur} since {A0}.") if gros
+                else (f"{NOMS_EN[top]} casualties",
+                      f"are rising fastest: {fmt_pct(ev, 0, signe=True)}."))
+    if gros:
+        return (f"Les victimes {NOMS[top]}", f"ont été multipliées par {facteur} depuis {A0}.")
     return (f"Les victimes {NOMS[top]}", f"progressent le plus : {fmt_pct(ev, 0, signe=True)}.")
 
 
 def chapeau():
     v = victimes_par_type(da.TERRITOIRE_FRANCE)
     a1 = da.DERNIERE_ANNEE
+    edp0, edp1 = fmt_number(v["EDP"][A0]), fmt_number(v["EDP"][a1])
+    vel = fmt_pct(evolution(v["Vélo"], a1), 0, signe=True)
+    voit = fmt_pct(evolution(v["Voiture"], a1), 0, signe=True)
+    if i18n.langue() == "en":
+        return (f"From {A0} to {a1}, e-scooter and other PMD casualties go from {edp0} to "
+                f"{edp1}, cyclist casualties change by {vel}, car casualties by {voit}.")
     return (f"De {A0} à {a1}, les victimes en trottinette et autres engins (EDP) passent de "
-            f"{fmt_number(v['EDP'][A0])} à {fmt_number(v['EDP'][a1])}, celles à vélo varient de "
-            f"{fmt_pct(evolution(v['Vélo'], a1), 0, signe=True)}, celles en voiture de "
-            f"{fmt_pct(evolution(v['Voiture'], a1), 0, signe=True)}.")
+            f"{edp0} à {edp1}, celles à vélo varient de {vel}, celles en voiture de {voit}.")
 
 
 def _pareto(periode, dep):
@@ -114,6 +129,11 @@ def et_alors():
     top = g.iloc[0]["lib"]
     nb = len(da.table("s02_gravite").groupby(["type_usager", "agg_lib"], observed=True))
     part = fmt_pct(g["cumul"].iloc[n - 1], 0)
+    if i18n.langue() == "en":
+        return (f"Over {da.LIBELLE_PERIODE_CUMUL}, {n} of {nb} segments concentrate {part} of "
+                f"the severity, led by « {top} »: that is where fine-grained pricing and "
+                "prevention pay off most. Personal mobility devices, still marginal, are worth "
+                "watching.")
     return (f"Sur {da.LIBELLE_PERIODE_CUMUL}, {n} segments sur {nb} concentrent {part} de la "
             f"gravité, emmenés par « {top} » : c'est là que tarification fine et prévention "
             "rapportent le plus. Les engins de déplacement personnel, encore marginaux, sont à "
@@ -124,7 +144,7 @@ def layout(**_):
     debut, accent = titre()
     critere = ("coût socio-économique" if poids_pareto() else "tués + blessés hospitalisés")
     return scene_layout(
-        scene_header(NUM, "Ce qui change", debut, accent, chapeau()),
+        scene_header(NUM, i18n.nom_scene("/evolution"), debut, accent, chapeau()),
         html.Div(id="s06-kpis"),
         chart_card("s06-multiples", "Victimes par mode de déplacement, base 100 en 2019",
                    f"Victimes par type d'usager, indice base 100 en {A0}, même échelle.",
