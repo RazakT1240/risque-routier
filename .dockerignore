@@ -1,0 +1,20 @@
+# Contexte de build minimal : on garde data/processed/, on exclut le reste.
+.git/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+_to_delete/
+*.log
+reports/screens/
+sandbox/
+tests/
+# Données brutes (jamais déployées) et intermédiaire non lu par l'app
+data/baac/
+data/meteo/
+data/insee/
+data/sdes/
+data/geo/
+data/processed/usagers_enrichis.parquet

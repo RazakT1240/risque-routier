@@ -1,5 +1,10 @@
-# Données (G16) : brutes et dérivées, jamais dans git
-data/
+# Données brutes (G16) : jamais dans git
+data/*
+# Exception déploiement : les agrégats Parquet lus par l'app sont versionnés
+# (sinon l'hébergeur n'a aucune donnée au démarrage). Les données BRUTES restent exclues.
+!data/processed/
+# …sauf l'intermédiaire volumineux (21 Mo) que l'app ne lit jamais (produit du pipeline).
+data/processed/usagers_enrichis.parquet
 
 # Environnement et caches
 .venv/

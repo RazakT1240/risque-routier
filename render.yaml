@@ -1,0 +1,16 @@
+# Blueprint Render (déploiement en un clic depuis le dépôt GitHub).
+# Render construit l'image à partir du Dockerfile et fournit $PORT automatiquement.
+services:
+  - type: web
+    name: risque-routier
+    runtime: docker
+    plan: free
+    envVars:
+      # Clé de signature du cookie de session : générée par Render (jamais dans le dépôt).
+      - key: APP_SECRET
+        generateValue: true
+      # Identifiants d'accès (démonstration). À personnaliser dans le tableau de bord Render.
+      - key: APP_UTILISATEUR
+        value: actuaire
+      - key: APP_MOTDEPASSE
+        value: risque2026

@@ -1,0 +1,54 @@
+{
+  "modele": "GLM Poisson, échelle de Pearson (quasi-Poisson)",
+  "formule": "nb_accidents ~ C(meteo_cat, Treatment('sec')) + premiere_pluie + C(dep) + C(mois) + C(annee) + C(jour_semaine)",
+  "periode": "2019-2025",
+  "perimetre": "France métropolitaine",
+  "n_obs": 245449,
+  "dispersion": 1.1085223890763316,
+  "effets": {
+    "sec": {
+      "rr": 1.0,
+      "ic_bas": 1.0,
+      "ic_haut": 1.0,
+      "reference": true,
+      "n_jours": 104663
+    },
+    "pluie faible": {
+      "coef": -0.0696622890346459,
+      "se": 0.00419673414694203,
+      "p": 7.066533239583293e-62,
+      "rr": 0.9327087526980944,
+      "ic_bas": 0.9250682718246506,
+      "ic_haut": 0.9404123391279121,
+      "n_jours": 75139
+    },
+    "pluie forte": {
+      "coef": -0.07796809156230712,
+      "se": 0.005528052529595468,
+      "p": 3.5843643995631586e-45,
+      "rr": 0.9249939411841923,
+      "ic_bas": 0.9150259298951178,
+      "ic_haut": 0.9350705409250394,
+      "n_jours": 37156
+    },
+    "gel": {
+      "coef": -0.0938741430562237,
+      "se": 0.007461498147674938,
+      "p": 2.681367462600283e-36,
+      "rr": 0.9103973348569232,
+      "ic_bas": 0.8971803207077703,
+      "ic_haut": 0.9238090584295743,
+      "n_jours": 28491
+    },
+    "premiere_pluie": {
+      "coef": 0.005654115293953115,
+      "se": 0.015251511061826848,
+      "p": 0.7108424237258903,
+      "rr": 1.0056701299725512,
+      "ic_bas": 0.9760530914246283,
+      "ic_haut": 1.0361858583356656,
+      "n_jours": 3133
+    }
+  },
+  "lecture": "rr = risque relatif d'accident un jour de la catégorie vs un jour sec, à département, mois, année et jour de semaine égaux ; premiere_pluie = surcroît d'un 1er jour de pluie après au moins 7 jours secs."
+}

@@ -38,6 +38,27 @@ Le tableau de bord est protégé par une page de connexion. Identifiants de dém
 Surchargeables par variables d'environnement avant le lancement :
 `APP_UTILISATEUR`, `APP_MOTDEPASSE`, et `APP_SECRET` (clé de signature du cookie de session).
 `APP_AUTH=0` désactive la garde (QA automatisée, développement).
+
+## Déploiement
+
+L'application se déploie en conteneur (`Dockerfile`), serveur de production **gunicorn**.
+Les agrégats Parquet lus par l'app (`data/processed/`, ~26 Mo) sont versionnés pour que
+l'hébergeur dispose des données au démarrage ; les **données brutes** restent hors du dépôt.
+
+En un clic sur [Render](https://render.com) (lit `render.yaml`, construit le `Dockerfile`,
+génère `APP_SECRET`) :
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/RazakT1240/risque-routier)
+
+Ou tout hébergeur Docker :
+
+```bash
+docker build -t risque-routier .
+docker run -p 8050:8050 -e APP_SECRET="<clé-aléatoire>" risque-routier
+```
+
+Pensez à définir `APP_SECRET` (clé de session) et, si besoin, `APP_UTILISATEUR` /
+`APP_MOTDEPASSE` dans l'environnement de l'hébergeur.
 Langue de l'interface : bascule **FR / EN** en haut à droite (connexion et tableau de bord).
 
 ## Vérifications
