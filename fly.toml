@@ -1,0 +1,21 @@
+# Déploiement Fly.io (alternative à Render, sans mise en veille agressive).
+# Utilise le même Dockerfile. Déploiement :
+#   fly launch --no-deploy   (crée l'app, reprend ce fichier)
+#   fly secrets set APP_SECRET="<clé-aléatoire>"
+#   fly deploy
+app = "risque-routier"
+primary_region = "cdg"            # Paris
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8050            # l'app écoute sur $PORT (défaut 8050 dans le Dockerfile)
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "1024mb"               # marge pour le chargement des Parquet + statsmodels

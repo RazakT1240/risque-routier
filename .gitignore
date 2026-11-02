@@ -1,10 +1,14 @@
 # Données brutes (G16) : jamais dans git
 data/*
-# Exception déploiement : les agrégats Parquet lus par l'app sont versionnés
-# (sinon l'hébergeur n'a aucune donnée au démarrage). Les données BRUTES restent exclues.
+# Exception déploiement : les fichiers lus par l'app AU RUNTIME sont versionnés
+# (sinon l'hébergeur n'a aucune donnée au démarrage). Le reste des données BRUTES reste exclu.
 !data/processed/
 # …sauf l'intermédiaire volumineux (21 Mo) que l'app ne lit jamais (produit du pipeline).
 data/processed/usagers_enrichis.parquet
+# Fond de carte départemental lu par l'app (choroplèthes, liste des départements).
+!data/geo/
+data/geo/*
+!data/geo/departements-version-simplifiee.geojson
 
 # Environnement et caches
 .venv/
